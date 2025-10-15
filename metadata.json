@@ -1,0 +1,7 @@
+{
+  "name": "EKO Navigation",
+  "description": "A modern navigation app designed to help users explore Lagos, discover its culture, and find routes easily, with features like offline maps, local language support, and a cultural discovery mode.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
