@@ -1,7 +1,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Place } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let ai: GoogleGenAI | null = null;
+let initializationError: string | null = null;
+
+try {
+  // This will throw if process.env.API_KEY is missing.
+  // The user's build environment (e.g., on Vercel) must replace process.env.API_KEY with the actual key.
+  // If it doesn't, this will fail gracefully instead of crashing the app.
+  ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+} catch (e: any) {
+  initializationError = "Failed to initialize AI service. Please ensure the API_KEY environment variable is correctly set for your deployment.";
+  console.error(initializationError, e);
+}
+
 
 const exploreResponseSchema = {
   type: Type.ARRAY,
@@ -26,6 +38,14 @@ const exploreResponseSchema = {
 };
 
 export const fetchExplorePlaces = async (category: string): Promise<Place[]> => {
+  if (!ai) {
+    return [
+        { name: 'API Key Error', category: 'Error', description: initializationError! },
+        { name: 'Lekki Conservation Centre', category: 'Nature', description: 'A serene nature reserve known for its long canopy walkway and diverse wildlife.' },
+        { name: 'Nike Art Gallery', category: 'Culture', description: 'A stunning art gallery showcasing contemporary and traditional Nigerian art.' },
+    ];
+  }
+
   try {
     const prompt = `List 5 popular places in Lagos, Nigeria under the category "${category}". For each place, provide its name, a single category, and a brief one-sentence description.`;
     
@@ -46,7 +66,7 @@ export const fetchExplorePlaces = async (category: string): Promise<Place[]> => 
     console.error("Error fetching explore places from Gemini API:", error);
     // Return mock data on error to ensure the app is still functional
     return [
-        { name: 'Error fetching data', category: 'Error', description: 'Could not connect to the discovery service. Please check your API key and network connection.' },
+        { name: 'Error fetching data', category: 'Error', description: 'Could not connect to the discovery service. Please check your network connection.' },
         { name: 'Lekki Conservation Centre', category: 'Nature', description: 'A serene nature reserve known for its long canopy walkway and diverse wildlife.' },
         { name: 'Nike Art Gallery', category: 'Culture', description: 'A stunning art gallery showcasing contemporary and traditional Nigerian art.' },
     ];
@@ -58,6 +78,9 @@ export const chatWithEkoBot = async (
     history: { role: 'user' | 'model', parts: { text: string }[] }[],
     location?: { lat: number, lon: number }
 ): Promise<string> => {
+    if (!ai) {
+        return initializationError || "The AI service is currently unavailable.";
+    }
     try {
         const chat = ai.chats.create({
             model: 'gemini-2.5-flash',
@@ -92,6 +115,10 @@ const searchSuggestionsSchema = {
 };
 
 export const fetchSearchSuggestions = async (query: string): Promise<string[]> => {
+    if (!ai) {
+        console.error(initializationError || "Search service is unavailable.");
+        return [];
+    }
     if (!query || query.length < 3) return [];
     try {
         const prompt = `Provide up to 5 autocomplete suggestions for places, landmarks, or areas in Lagos, Nigeria, that start with or are related to "${query}".`;
@@ -123,6 +150,10 @@ const geocodeSchema = {
 };
 
 export const geocodePlace = async (placeName: string): Promise<{ lat: number, lon: number } | null> => {
+    if (!ai) {
+        console.error(initializationError || "Geocoding service is unavailable.");
+        return null;
+    }
     try {
         const prompt = `Provide the precise latitude and longitude for this location in Lagos, Nigeria: "${placeName}".`;
         const response = await ai.models.generateContent({
