@@ -1,3 +1,4 @@
+
 const english = {
     splash_tagline: "Your smart guide to Lagos.",
     onboarding_title_1: "Welcome to EKO",
@@ -15,6 +16,7 @@ const english = {
     login_button: "Login",
     or_divider: "or",
     login_google: "Continue with Google",
+    login_google_loading: "Signing in...",
     login_no_account: "Don't have an account?",
     login_signup_link: "Sign Up",
     signup_create_account: "Create Account",
@@ -61,7 +63,10 @@ const english = {
     settings_map_source: "Map Source",
     ekobot_header: "EkoBot",
     ekobot_placeholder: "Ask me about Lagos...",
+    ekobot_listening_placeholder: "Listening...",
     ekobot_send_label: "Send message",
+    ekobot_voice_input_label: "Start voice input",
+    ekobot_voice_stop_label: "Stop voice input",
     ar_you_are_here: "You are here",
     search_loading: "Searching...",
     search_no_results: "No results found.",

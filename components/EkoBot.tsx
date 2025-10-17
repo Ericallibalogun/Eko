@@ -1,9 +1,60 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { XIcon, MaximizeIcon, MinimizeIcon } from './Icons';
+import { XIcon, MaximizeIcon, MinimizeIcon, MicrophoneIcon } from './Icons';
 import { chatWithEkoBot } from '../services/geminiService';
 import { USER_PROFILE } from '../constants';
 import { useLanguage } from '../i18n/LanguageContext';
 import Avatar from './Avatar';
+
+// Corrected Web Speech API type definitions for global scope
+declare global {
+  interface Window {
+    SpeechRecognition: typeof SpeechRecognition;
+    webkitSpeechRecognition: typeof SpeechRecognition;
+  }
+
+  const SpeechRecognition: {
+    new (): SpeechRecognition;
+  };
+
+  interface SpeechRecognition extends EventTarget {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    onend: (() => void) | null;
+    onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+    onresult: ((event: SpeechRecognitionEvent) => void) | null;
+    start(): void;
+    stop(): void;
+  }
+
+  interface SpeechRecognitionEvent extends Event {
+    readonly results: SpeechRecognitionResultList;
+  }
+
+  interface SpeechRecognitionResultList {
+    readonly length: number;
+    item(index: number): SpeechRecognitionResult;
+    [index: number]: SpeechRecognitionResult;
+  }
+  
+  interface SpeechRecognitionResult {
+    readonly isFinal: boolean;
+    readonly length: number;
+    item(index: number): SpeechRecognitionAlternative;
+    [index: number]: SpeechRecognitionAlternative;
+  }
+
+  interface SpeechRecognitionAlternative {
+    readonly transcript: string;
+    readonly confidence: number;
+  }
+
+  interface SpeechRecognitionErrorEvent extends Event {
+    readonly error: string;
+    readonly message: string;
+  }
+}
+
 
 interface EkoBotProps {
   isOpen: boolean;
@@ -57,8 +108,44 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isMaximized, setIsMaximized] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+    const recognitionRef = useRef<SpeechRecognition | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const { t } = useLanguage();
+    const { language, t } = useLanguage();
+
+    useEffect(() => {
+        const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognitionAPI) {
+            const recognition = new SpeechRecognitionAPI();
+            const langCodeMap = { English: 'en-US', Yoruba: 'yo-NG', Hausa: 'ha-NG', Igbo: 'ig-NG' };
+            
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = langCodeMap[language as keyof typeof langCodeMap] || 'en-US';
+
+            recognition.onresult = (event: SpeechRecognitionEvent) => {
+                const transcript = Array.from(event.results)
+                    .map(result => result[0])
+                    .map(result => result.transcript)
+                    .join('');
+                setInput(transcript);
+            };
+            
+            recognition.onend = () => {
+                setIsListening(false);
+            };
+
+            recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+                console.error("Speech Recognition Error:", event.error, event.message);
+                setIsListening(false);
+            };
+            
+            recognitionRef.current = recognition;
+        } else {
+            console.warn("Speech recognition not supported in this browser.");
+        }
+    }, [language]);
+
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -79,18 +166,31 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
             parts: [{ text: msg.text }]
         }));
         
-        // Get current location to send with the prompt
         const location = await getCurrentLocation();
-
         const botResponseText = await chatWithEkoBot(input, historyForApi, location);
         const botMessage: Message = { role: 'model', text: botResponseText };
         
         setMessages(prev => [...prev, botMessage]);
         setIsLoading(false);
     };
+
+    const toggleListening = () => {
+        if (isLoading || !recognitionRef.current) return;
+
+        if (isListening) {
+            recognitionRef.current.stop();
+        } else {
+            setInput(''); // Clear input before starting
+            recognitionRef.current.start();
+            setIsListening(true);
+        }
+    };
     
     const handleClose = () => {
-        setIsMaximized(false); // Reset maximized state on close
+        if (isListening) {
+            recognitionRef.current?.stop();
+        }
+        setIsMaximized(false);
         onClose();
     };
 
@@ -118,7 +218,6 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
         aria-labelledby="ekobot-heading"
         className={`${containerClasses} bg-[#1A2E27] text-white z-50 flex flex-col shadow-2xl transition-all duration-300 ease-in-out ${transitionClasses}`}
       >
-        {/* Header */}
         <header className="flex items-center justify-between p-4 border-b border-gray-700 flex-shrink-0">
             <h2 id="ekobot-heading" className="text-xl font-bold font-poppins">{t('ekobot_header')}</h2>
             <div className="flex items-center space-x-2">
@@ -135,7 +234,6 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
             </div>
         </header>
 
-        {/* Messages */}
         <div className="flex-grow p-4 overflow-y-auto">
             <div className="space-y-4">
                  {messages.map((msg, index) => (
@@ -163,23 +261,31 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
             </div>
         </div>
         
-        {/* Input */}
         <div className="p-4 border-t border-gray-700 flex-shrink-0">
             <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-center space-x-2">
+                <button
+                    type="button"
+                    onClick={toggleListening}
+                    disabled={!recognitionRef.current || isLoading}
+                    className={`flex-shrink-0 text-white p-2 rounded-full transition-colors ${isListening ? 'bg-red-600 animate-pulse' : 'bg-gray-700 hover:bg-gray-600'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    aria-label={isListening ? t('ekobot_voice_stop_label') : t('ekobot_voice_input_label')}
+                >
+                    <MicrophoneIcon className="w-6 h-6" />
+                </button>
                 <input 
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder={t('ekobot_placeholder')}
-                    className="w-full bg-gray-800 border border-gray-600 text-white placeholder-gray-400 rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-[#008751]"
+                    placeholder={isListening ? t('ekobot_listening_placeholder') : t('ekobot_placeholder')}
+                    className="w-full bg-gray-800 border border-gray-600 text-white placeholder-gray-400 rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-[#008751] disabled:opacity-70"
+                    disabled={isListening}
                 />
                 <button 
                     type="submit"
-                    disabled={isLoading}
-                    className="bg-[#008751] text-white p-2 rounded-full disabled:bg-gray-500"
+                    disabled={isLoading || isListening}
+                    className="bg-[#008751] text-white p-2 rounded-full disabled:bg-gray-500 disabled:cursor-not-allowed"
                     aria-label={t('ekobot_send_label')}
                 >
-                    {/* FIX: Corrected the malformed viewBox attribute in the SVG element. */}
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                 </button>
             </form>
