@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { MenuIcon, CompassIcon, InfoIcon } from './Icons';
 import { fetchExplorePlaces } from '../services/geminiService';
+import { placesAPI } from '../services/apiService';
 import type { Place } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -46,15 +46,32 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({ onMenuClick }) => {
   const [selectedCategory, setSelectedCategory] = useState(categories[0].key);
   const [places, setPlaces] = useState<Place[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
   const { t } = useLanguage();
 
   useEffect(() => {
     const loadPlaces = async () => {
       setIsLoading(true);
+      setError('');
       setPlaces([]); // Clear previous places
-      const fetchedPlaces = await fetchExplorePlaces(selectedCategory);
-      setPlaces(fetchedPlaces);
-      setIsLoading(false);
+      
+      try {
+        // Try to fetch from backend first
+        const fetchedPlaces = await placesAPI.getPlacesByCategory(selectedCategory);
+        setPlaces(fetchedPlaces);
+      } catch (err) {
+        // If backend fails, fallback to Gemini API
+        console.log('Fetching from backend failed, falling back to Gemini API');
+        try {
+          const fetchedPlaces = await fetchExplorePlaces(selectedCategory);
+          setPlaces(fetchedPlaces);
+        } catch (geminiErr) {
+          setError('Failed to load places');
+          console.error('Both backend and Gemini API failed:', geminiErr);
+        }
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadPlaces();
@@ -69,6 +86,12 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({ onMenuClick }) => {
         <h1 className="text-2xl font-bold font-poppins">{t('explore_header')}</h1>
         <div className="w-10"></div> {/* Spacer */}
       </header>
+      
+      {error && (
+        <div className="mx-4 my-2 p-2 bg-red-500 text-white rounded">
+          {error}
+        </div>
+      )}
 
       {/* Category Tabs */}
       <div className="px-4 pt-4">
