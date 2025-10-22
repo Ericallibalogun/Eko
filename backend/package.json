@@ -2,10 +2,10 @@
   "name": "eko-navigation-backend",
   "version": "1.0.0",
   "description": "Backend for EKO Navigation app",
-  "main": "index.js",
+  "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node start.js",
+    "start": "node server.js",
     "dev": "nodemon server.js"
   },
   "dependencies": {

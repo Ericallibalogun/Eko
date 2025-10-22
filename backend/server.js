@@ -1,3 +1,12 @@
+#!/usr/bin/env node
+
+// Direct server entry point for deployment
+// This file combines the functionality of index.js and server-simple.js
+// to avoid module resolution issues in deployment environments
+
+console.log('Starting EKO Navigation Backend...');
+
+// Import required modules
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -19,19 +28,10 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// In production, we don't serve static files from the backend
-if (process.env.NODE_ENV !== 'production') {
-  // Serve static files from the React app build
-  app.use(express.static(path.join(__dirname, '../dist')));
-}
-
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/eko-navigation')
   .then(() => console.log('Connected to MongoDB'))
-  .catch(err => {
-    console.error('MongoDB connection error:', err);
-    // Don't exit the process, just log the error
-  });
+  .catch(err => console.error('MongoDB connection error:', err));
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -39,7 +39,7 @@ import userRoutes from './routes/users.js';
 import placeRoutes from './routes/places.js';
 import chatRoutes from './routes/chat.js';
 
-// Health check endpoints
+// Health check endpoint
 app.get('/', (req, res) => {
   res.json({ 
     message: 'EKO Navigation Backend is running',
@@ -62,30 +62,9 @@ app.use('/api/users', userRoutes);
 app.use('/api/places', placeRoutes);
 app.use('/api/chat', chatRoutes);
 
-// In production, we don't need the catchall handler
-if (process.env.NODE_ENV !== 'production') {
-  // The "catchall" handler: for any request that doesn't
-  // match one of the previous routes, send back React's index.html file.
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../dist/index.html'));
-  });
-}
-
-const server = app.listen(PORT, () => {
+// Start server
+app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    console.log('Process terminated');
-  });
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
-  server.close(() => {
-    console.log('Process terminated');
-  });
-});
+console.log('Server started successfully');
