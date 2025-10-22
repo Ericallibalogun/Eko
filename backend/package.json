@@ -2,13 +2,14 @@
   "name": "eko-navigation-backend",
   "version": "1.0.0",
   "description": "Backend for EKO Navigation app",
-  "main": "server.js",
+  "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
+    "start": "node index.js",
     "dev": "nodemon server.js",
     "init-db": "node scripts/init-db.js",
-    "test-api": "node scripts/test-api.js"
+    "test-api": "node scripts/test-api.js",
+    "test-server": "node test-server.js"
   },
   "dependencies": {
     "@types/react": "^19.2.2",

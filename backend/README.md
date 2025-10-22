@@ -61,6 +61,7 @@ This is the backend API for the EKO Navigation application.
    - MONGODB_URI: your MongoDB Atlas connection string
    - JWT_SECRET: your JWT secret
    - GEMINI_API_KEY: your Gemini API key
+   - NODE_ENV: production
 7. Click "Create Web Service"
 
 #### Option 2: Deploy to Heroku
@@ -79,6 +80,7 @@ This is the backend API for the EKO Navigation application.
    heroku config:set MONGODB_URI=your_mongodb_connection_string
    heroku config:set JWT_SECRET=your_jwt_secret
    heroku config:set GEMINI_API_KEY=your_gemini_api_key
+   heroku config:set NODE_ENV=production
    ```
 5. Deploy:
    ```
@@ -112,12 +114,18 @@ This is the backend API for the EKO Navigation application.
 - `POST /api/chat/message` - Save a message
 - `DELETE /api/chat/history` - Clear chat history
 
+### Health Check
+
+- `GET /health` - Health check endpoint
+- `GET /` - Basic server status
+
 ## Environment Variables
 
 - `MONGODB_URI` - MongoDB connection string
 - `JWT_SECRET` - Secret for JWT token signing
 - `PORT` - Server port (default: 5000)
 - `GEMINI_API_KEY` - Google Gemini API key
+- `NODE_ENV` - Environment (development/production)
 
 ## Database Models
 
@@ -130,6 +138,15 @@ This is the backend API for the EKO Navigation application.
 - settings: Object (theme, language, mapSource)
 - savedPlaces: Array of Objects
 - chatHistory: Array of Objects
+
+## Troubleshooting
+
+If you encounter issues during deployment:
+
+1. **Missing start script**: Ensure the package.json has the correct start script
+2. **Port in use**: Make sure no other process is using the port
+3. **MongoDB connection**: Verify your connection string and IP whitelist in MongoDB Atlas
+4. **Environment variables**: Check that all required environment variables are set
 
 ## Contributing
 

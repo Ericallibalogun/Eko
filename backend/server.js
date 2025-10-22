@@ -28,7 +28,10 @@ if (process.env.NODE_ENV !== 'production') {
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/eko-navigation')
   .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    // Don't exit the process, just log the error
+  });
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -36,12 +39,20 @@ import userRoutes from './routes/users.js';
 import placeRoutes from './routes/places.js';
 import chatRoutes from './routes/chat.js';
 
-// Health check endpoint
+// Health check endpoints
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'EKO Navigation Backend is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    service: 'EKO Navigation Backend'
+    service: 'EKO Navigation Backend',
+    mongodb: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'
   });
 });
 
@@ -60,6 +71,21 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Process terminated');
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  server.close(() => {
+    console.log('Process terminated');
+  });
 });
