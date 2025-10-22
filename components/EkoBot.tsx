@@ -4,6 +4,7 @@ import { chatWithEkoBot } from '../services/geminiService';
 import { USER_PROFILE } from '../constants';
 import { useLanguage } from '../i18n/LanguageContext';
 import Avatar from './Avatar';
+import { chatAPI } from '../services/apiService';
 
 // Corrected Web Speech API type definitions for global scope
 declare global {
@@ -113,6 +114,25 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const { language, t } = useLanguage();
 
+    // Load chat history when component mounts
+    useEffect(() => {
+        const loadChatHistory = async () => {
+            try {
+                const history = await chatAPI.getChatHistory();
+                if (history.messages) {
+                    setMessages(history.messages);
+                }
+            } catch (error) {
+                console.log('Failed to load chat history:', error);
+                // Continue with empty messages if history can't be loaded
+            }
+        };
+        
+        if (isOpen) {
+            loadChatHistory();
+        }
+    }, [isOpen]);
+
     useEffect(() => {
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognitionAPI) {
@@ -161,6 +181,13 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
         setInput('');
         setIsLoading(true);
 
+        // Save user message to backend
+        try {
+            await chatAPI.saveMessage({ role: 'user', text: input });
+        } catch (error) {
+            console.log('Failed to save user message:', error);
+        }
+
         const historyForApi = messages.map(msg => ({
             role: msg.role,
             parts: [{ text: msg.text }]
@@ -172,6 +199,13 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
         
         setMessages(prev => [...prev, botMessage]);
         setIsLoading(false);
+        
+        // Save bot response to backend
+        try {
+            await chatAPI.saveMessage({ role: 'model', text: botResponseText });
+        } catch (error) {
+            console.log('Failed to save bot message:', error);
+        }
     };
 
     const toggleListening = () => {

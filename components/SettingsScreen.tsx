@@ -1,18 +1,17 @@
-
-
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { MenuIcon, ChevronDownIcon } from './Icons';
 import { USER_PROFILE, SETTINGS_CONFIG } from '../constants';
-import type { SettingsSection, Settings } from '../types';
+import type { SettingsSection, Settings, UserProfile } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
 import { translations } from '../i18n/translations';
 import Avatar from './Avatar';
+import { userAPI } from '../services/apiService';
 
 interface SettingsScreenProps {
     onMenuClick: () => void;
     settings: Settings;
     setSettings: React.Dispatch<React.SetStateAction<Settings>>;
+    userProfile?: UserProfile | null;
 }
 
 const SelectInput: React.FC<{ 
@@ -33,7 +32,8 @@ const SettingsSectionComponent: React.FC<{
     section: SettingsSection,
     settings: Settings,
     setSettings: React.Dispatch<React.SetStateAction<Settings>>;
-}> = ({ section, settings, setSettings }) => {
+    onSettingChange: (key: keyof Settings, value: string) => void;
+}> = ({ section, settings, setSettings, onSettingChange }) => {
     const { t } = useLanguage();
     
     const getLabel = (key: keyof Settings) => {
@@ -57,7 +57,11 @@ const SettingsSectionComponent: React.FC<{
                                 <SelectInput 
                                     options={item.options} 
                                     value={settings[item.key]}
-                                    onChange={(e) => setSettings(s => ({...s, [item.key]: e.target.value as any}))}
+                                    onChange={(e) => {
+                                        const newValue = e.target.value as any;
+                                        setSettings(s => ({...s, [item.key]: newValue}));
+                                        onSettingChange(item.key, newValue);
+                                    }}
                                 />
                             </div>
                         )}
@@ -68,8 +72,41 @@ const SettingsSectionComponent: React.FC<{
     );
 }
 
-const SettingsScreen: React.FC<SettingsScreenProps> = ({ onMenuClick, settings, setSettings }) => {
+const SettingsScreen: React.FC<SettingsScreenProps> = ({ onMenuClick, settings, setSettings, userProfile }) => {
     const { t } = useLanguage();
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+    
+    // Use the passed userProfile or fallback to the default USER_PROFILE
+    const displayUser = userProfile || USER_PROFILE;
+    
+    // Function to handle setting changes and save to backend
+    const handleSettingChange = async (key: keyof Settings, value: string) => {
+        try {
+            setError('');
+            setSuccess('');
+            
+            // Create settings object with only the changed setting
+            const settingsUpdate = { [key]: value };
+            
+            // Save to backend
+            await userAPI.updateSettings(settingsUpdate);
+            
+            setSuccess('Settings saved successfully');
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (err: any) {
+            setError(err.message || 'Failed to save settings');
+        }
+    };
+    
+    // Function to handle logout
+    const handleLogout = () => {
+        // Clear token from localStorage
+        localStorage.removeItem('ekoToken');
+        // Redirect to login screen (this would need to be handled by the parent component)
+        window.location.reload();
+    };
+
     return (
         <div className="bg-[#121212] min-h-screen text-white">
             <header className="sticky top-0 bg-[#121212]/80 backdrop-blur-md p-4 z-10 flex items-center justify-between text-white">
@@ -78,29 +115,51 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onMenuClick, settings, 
                 </button>
                 <h1 className="text-2xl font-bold font-poppins">{t('settings_header')}</h1>
                  <button className="p-2 rounded-full hover:bg-gray-700/50">
-                   <Avatar src={USER_PROFILE.avatarUrl} alt="user" className="w-8 h-8 rounded-full" />
+                   <Avatar src={displayUser.avatarUrl} alt="user" className="w-8 h-8 rounded-full" />
                 </button>
             </header>
 
             <div className="p-4">
+                {error && (
+                    <div className="mb-4 p-2 bg-red-500 text-white rounded">
+                        {error}
+                    </div>
+                )}
+                
+                {success && (
+                    <div className="mb-4 p-2 bg-green-500 text-white rounded">
+                        {success}
+                    </div>
+                )}
+                
                 {/* Account Section */}
                 <div className="mb-8">
                     <h3 className="text-lg font-bold text-slate-400 mb-4 px-2">{t('settings_account')}</h3>
                     <div className="bg-gray-800/50 rounded-lg p-4 flex items-center justify-between">
                         <div className="flex items-center">
-                            <Avatar src={USER_PROFILE.avatarUrl} alt="User" className="w-16 h-16 rounded-full border-2 border-[#008751]" />
+                            <Avatar src={displayUser.avatarUrl} alt="User" className="w-16 h-16 rounded-full border-2 border-[#008751]" />
                             <div className="ml-4">
-                                <p className="font-bold text-xl">{USER_PROFILE.name}</p>
-                                <p className="text-sm text-slate-400">{USER_PROFILE.email}</p>
+                                <p className="font-bold text-xl">{displayUser.name}</p>
+                                <p className="text-sm text-slate-400">{displayUser.email}</p>
                             </div>
                         </div>
-                        <button className="bg-red-600/80 hover:bg-red-700/80 text-white font-bold py-2 px-4 rounded-lg transition">{t('settings_logout')}</button>
+                        <button 
+                            onClick={handleLogout}
+                            className="bg-red-600/80 hover:bg-red-700/80 text-white font-bold py-2 px-4 rounded-lg transition">
+                            {t('settings_logout')}
+                        </button>
                     </div>
                 </div>
 
                 {/* Settings */}
                 {SETTINGS_CONFIG.map(section => (
-                    <SettingsSectionComponent key={section.title} section={section} settings={settings} setSettings={setSettings}/>
+                    <SettingsSectionComponent 
+                        key={section.title} 
+                        section={section} 
+                        settings={settings} 
+                        setSettings={setSettings}
+                        onSettingChange={handleSettingChange}
+                    />
                 ))}
 
                  {/* About Section */}
