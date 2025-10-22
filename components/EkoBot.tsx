@@ -1,10 +1,10 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { XIcon, MaximizeIcon, MinimizeIcon, MicrophoneIcon } from './Icons';
 import { chatWithEkoBot } from '../services/geminiService';
 import { USER_PROFILE } from '../constants';
 import { useLanguage } from '../i18n/LanguageContext';
 import Avatar from './Avatar';
-import { chatAPI } from '../services/apiService';
 
 // Corrected Web Speech API type definitions for global scope
 declare global {
@@ -67,6 +67,9 @@ type Message = {
     text: string;
 }
 
+type Status = 'idle' | 'locating' | 'thinking';
+
+
 const getCurrentLocation = (): Promise<{ lat: number; lon: number } | null> => {
     return new Promise((resolve) => {
         if (!navigator.geolocation) {
@@ -107,31 +110,12 @@ const renderMessageContent = (text: string) => {
 const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    const [status, setStatus] = useState<Status>('idle');
     const [isMaximized, setIsMaximized] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const recognitionRef = useRef<SpeechRecognition | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const { language, t } = useLanguage();
-
-    // Load chat history when component mounts
-    useEffect(() => {
-        const loadChatHistory = async () => {
-            try {
-                const history = await chatAPI.getChatHistory();
-                if (history.messages) {
-                    setMessages(history.messages);
-                }
-            } catch (error) {
-                console.log('Failed to load chat history:', error);
-                // Continue with empty messages if history can't be loaded
-            }
-        };
-        
-        if (isOpen) {
-            loadChatHistory();
-        }
-    }, [isOpen]);
 
     useEffect(() => {
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -157,6 +141,9 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
 
             recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
                 console.error("Speech Recognition Error:", event.error, event.message);
+                if (event.error !== 'no-speech' && event.error !== 'aborted') {
+                    alert(t('ekobot_speech_error'));
+                }
                 setIsListening(false);
             };
             
@@ -164,7 +151,7 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
         } else {
             console.warn("Speech recognition not supported in this browser.");
         }
-    }, [language]);
+    }, [language, t]);
 
 
     const scrollToBottom = () => {
@@ -174,49 +161,45 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
     useEffect(scrollToBottom, [messages]);
 
     const handleSend = async () => {
-        if (input.trim() === '' || isLoading) return;
+        const currentInput = input.trim();
+        if (currentInput === '' || status !== 'idle') return;
         
-        const userMessage: Message = { role: 'user', text: input };
+        recognitionRef.current?.stop();
+
+        const userMessage: Message = { role: 'user', text: currentInput };
         setMessages(prev => [...prev, userMessage]);
         setInput('');
-        setIsLoading(true);
-
-        // Save user message to backend
-        try {
-            await chatAPI.saveMessage({ role: 'user', text: input });
-        } catch (error) {
-            console.log('Failed to save user message:', error);
-        }
 
         const historyForApi = messages.map(msg => ({
             role: msg.role,
             parts: [{ text: msg.text }]
         }));
         
+        setStatus('locating');
         const location = await getCurrentLocation();
-        const botResponseText = await chatWithEkoBot(input, historyForApi, location);
+
+        setStatus('thinking');
+        const botResponseText = await chatWithEkoBot(currentInput, historyForApi, location);
         const botMessage: Message = { role: 'model', text: botResponseText };
         
         setMessages(prev => [...prev, botMessage]);
-        setIsLoading(false);
-        
-        // Save bot response to backend
-        try {
-            await chatAPI.saveMessage({ role: 'model', text: botResponseText });
-        } catch (error) {
-            console.log('Failed to save bot message:', error);
-        }
+        setStatus('idle');
     };
 
     const toggleListening = () => {
-        if (isLoading || !recognitionRef.current) return;
+        if (status !== 'idle' || !recognitionRef.current) return;
 
         if (isListening) {
             recognitionRef.current.stop();
         } else {
             setInput(''); // Clear input before starting
-            recognitionRef.current.start();
-            setIsListening(true);
+            try {
+                recognitionRef.current.start();
+                setIsListening(true);
+            } catch(e) {
+                console.error("Error starting speech recognition:", e);
+                alert(t('ekobot_speech_error'));
+            }
         }
     };
     
@@ -271,7 +254,7 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
         <div className="flex-grow p-4 overflow-y-auto">
             <div className="space-y-4">
                  {messages.map((msg, index) => (
-                    <div key={index} className={`flex items-end gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div key={index} className={`flex items-end gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in-up`}>
                         {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#008751] to-[#1c5f42] flex-shrink-0"></div>}
                         <div className={`max-w-xs md:max-w-sm px-4 py-2 rounded-2xl ${msg.role === 'user' ? 'bg-[#008751] rounded-br-none' : 'bg-gray-700 rounded-bl-none'}`}>
                             <p className="text-white whitespace-pre-wrap">{renderMessageContent(msg.text)}</p>
@@ -279,15 +262,19 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
                          {msg.role === 'user' && <Avatar src={USER_PROFILE.avatarUrl} alt="user" className="w-8 h-8 rounded-full flex-shrink-0" />}
                     </div>
                 ))}
-                {isLoading && (
+                {status !== 'idle' && (
                      <div className="flex items-end gap-2 justify-start">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#008751] to-[#1c5f42] flex-shrink-0"></div>
-                        <div className="max-w-xs md:max-w-sm px-4 py-2 rounded-2xl bg-gray-700 rounded-bl-none">
-                            <div className="flex items-center space-x-1">
-                                <span className="w-2 h-2 bg-white rounded-full animate-pulse delay-75"></span>
-                                <span className="w-2 h-2 bg-white rounded-full animate-pulse delay-150"></span>
-                                <span className="w-2 h-2 bg-white rounded-full animate-pulse delay-300"></span>
-                            </div>
+                        <div className="max-w-xs md:max-w-sm px-4 py-3 rounded-2xl bg-gray-700 rounded-bl-none">
+                            {status === 'locating' ? (
+                                <p className="text-sm text-slate-300 italic">{t('ekobot_locating')}</p>
+                            ) : (
+                                <div className="flex items-center space-x-1">
+                                    <span className="w-2 h-2 bg-white rounded-full animate-pulse delay-75"></span>
+                                    <span className="w-2 h-2 bg-white rounded-full animate-pulse delay-150"></span>
+                                    <span className="w-2 h-2 bg-white rounded-full animate-pulse delay-300"></span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -300,7 +287,7 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
                 <button
                     type="button"
                     onClick={toggleListening}
-                    disabled={!recognitionRef.current || isLoading}
+                    disabled={status !== 'idle' || !recognitionRef.current}
                     className={`flex-shrink-0 text-white p-2 rounded-full transition-colors ${isListening ? 'bg-red-600 animate-pulse' : 'bg-gray-700 hover:bg-gray-600'} disabled:opacity-50 disabled:cursor-not-allowed`}
                     aria-label={isListening ? t('ekobot_voice_stop_label') : t('ekobot_voice_input_label')}
                 >
@@ -316,11 +303,11 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
                 />
                 <button 
                     type="submit"
-                    disabled={isLoading || isListening}
+                    disabled={status !== 'idle' || isListening}
                     className="bg-[#008751] text-white p-2 rounded-full disabled:bg-gray-500 disabled:cursor-not-allowed"
                     aria-label={t('ekobot_send_label')}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                 </button>
             </form>
         </div>

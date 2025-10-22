@@ -48,6 +48,38 @@
         background: #2d3748; /* bg-gray-800 */
         color: white;
       }
+
+      /* Added for Motion Logic */
+      @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes fade-in-up {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes pulse-glow {
+        0%, 100% {
+          transform: scale(1);
+          filter: drop-shadow(0 0 4px currentColor);
+        }
+        50% {
+          transform: scale(1.05);
+          filter: drop-shadow(0 0 12px currentColor);
+        }
+      }
+
+      /* Animation utility classes */
+      .animate-fade-in {
+        animation: fade-in 0.6s ease-out forwards;
+      }
+      .animate-fade-in-up {
+        opacity: 0; /* Start hidden to prevent flash */
+        animation: fade-in-up 0.5s ease-out forwards;
+      }
+      .animate-pulse-glow {
+        animation: pulse-glow 2.5s infinite ease-in-out;
+      }
     </style>
 <script type="importmap">
 {

@@ -1,4 +1,7 @@
-import React, { useEffect, useState } from 'react';
+
+
+
+import React from 'react';
 import { Screen, UserProfile } from '../types';
 import { HomeIcon, CompassIcon, StarIcon, ClockIcon, SettingsIcon, InfoIcon, XIcon } from './Icons';
 import { USER_PROFILE } from '../constants';
@@ -10,7 +13,6 @@ interface SidebarProps {
   onClose: () => void;
   onNavigate: (screen: Screen) => void;
   currentScreen: Screen;
-  userProfile?: UserProfile | null;
 }
 
 const NavItem: React.FC<{
@@ -31,19 +33,8 @@ const NavItem: React.FC<{
 );
 
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onNavigate, currentScreen, userProfile }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onNavigate, currentScreen }) => {
     const { t } = useLanguage();
-    const [displayUser, setDisplayUser] = useState<UserProfile>(USER_PROFILE);
-    
-    // Update displayUser when userProfile changes
-    useEffect(() => {
-      console.log('Sidebar received userProfile:', userProfile);
-      if (userProfile) {
-        setDisplayUser(userProfile);
-      } else {
-        setDisplayUser(USER_PROFILE);
-      }
-    }, [userProfile]);
     
     const handleNavigation = (screen: Screen) => {
         onNavigate(screen);
@@ -69,19 +60,27 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onNavigate, currentS
         </div>
         
         <div className="flex items-center p-3 bg-gray-900/50 rounded-lg mb-8">
-            <Avatar src={displayUser.avatarUrl} alt="User" className="w-12 h-12 rounded-full border-2 border-[#008751]" />
+            <Avatar src={USER_PROFILE.avatarUrl} alt="User" className="w-12 h-12 rounded-full border-2 border-[#008751]" />
             <div className="ml-3">
-                <p className="font-bold">{displayUser.name}</p>
+                <p className="font-bold">{USER_PROFILE.name}</p>
                 <p className="text-sm text-slate-400">{t('sidebar_welcome_user')}</p>
             </div>
         </div>
 
         <nav>
           <ul>
-            <NavItem icon={<HomeIcon className="w-6 h-6"/>} label={t('sidebar_home')} isActive={currentScreen === Screen.Home} onClick={() => handleNavigation(Screen.Home)} />
-            <NavItem icon={<CompassIcon className="w-6 h-6"/>} label={t('sidebar_explore')} isActive={currentScreen === Screen.Explore} onClick={() => handleNavigation(Screen.Explore)} />
-            <NavItem icon={<StarIcon className="w-6 h-6"/>} label={t('sidebar_favorites')} isActive={currentScreen === Screen.Favorites} onClick={() => handleNavigation(Screen.Favorites)} />
-            <NavItem icon={<SettingsIcon className="w-6 h-6"/>} label={t('sidebar_settings')} isActive={currentScreen === Screen.Settings} onClick={() => handleNavigation(Screen.Settings)} />
+            <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+                <NavItem icon={<HomeIcon className="w-6 h-6"/>} label={t('sidebar_home')} isActive={currentScreen === Screen.Home} onClick={() => handleNavigation(Screen.Home)} />
+            </div>
+            <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                <NavItem icon={<CompassIcon className="w-6 h-6"/>} label={t('sidebar_explore')} isActive={currentScreen === Screen.Explore} onClick={() => handleNavigation(Screen.Explore)} />
+            </div>
+            <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+                <NavItem icon={<StarIcon className="w-6 h-6"/>} label={t('sidebar_favorites')} isActive={currentScreen === Screen.Favorites} onClick={() => handleNavigation(Screen.Favorites)} />
+            </div>
+            <div className="animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+                <NavItem icon={<SettingsIcon className="w-6 h-6"/>} label={t('sidebar_settings')} isActive={currentScreen === Screen.Settings} onClick={() => handleNavigation(Screen.Settings)} />
+            </div>
           </ul>
         </nav>
         

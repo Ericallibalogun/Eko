@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { MenuIcon, StarIcon, ClockIcon } from './Icons';
+import { MenuIcon, StarIcon, ClockIcon, ShareIcon } from './Icons';
 import type { SavedPlace } from '../types';
 import { SAVED_PLACES, RECENT_PLACES } from '../constants';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -10,22 +11,46 @@ interface FavoritesScreenProps {
   onMenuClick: () => void;
 }
 
-const PlaceRow: React.FC<{ place: SavedPlace }> = ({ place }) => (
-    <div className="flex items-center bg-gray-800/50 p-3 rounded-lg hover:bg-gray-700/50 transition-colors">
-        <ImageWithFallback
-            src={place.imageUrl}
-            alt={place.name}
-            className="w-16 h-16 rounded-md object-cover mr-4"
-            fallbackClassName="bg-gray-700"
-            iconClassName="w-8 h-8 text-gray-500"
-        />
-        <div className="flex-grow">
-            <h3 className="font-bold text-white">{place.name}</h3>
-            <p className="text-sm text-slate-400">{place.category}</p>
+const PlaceRow: React.FC<{ place: SavedPlace }> = ({ place }) => {
+    const handleShare = async (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent triggering any parent onClick events
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: "EKO Navigation: A Cool Spot in Lagos",
+                    text: `Found this place using EKO Navigation: ${place.name} (${place.category}). You should check it out!`,
+                    url: window.location.href,
+                });
+            } catch (error) {
+                console.log('Error sharing:', error);
+            }
+        }
+    };
+
+    return (
+        <div className="flex items-center bg-gray-800/50 p-3 rounded-lg hover:bg-gray-700/50 transition-colors">
+            <ImageWithFallback
+                src={place.imageUrl}
+                alt={place.name}
+                className="w-16 h-16 rounded-md object-cover mr-4"
+                fallbackClassName="bg-gray-700"
+                iconClassName="w-8 h-8 text-gray-500"
+            />
+            <div className="flex-grow">
+                <h3 className="font-bold text-white">{place.name}</h3>
+                <p className="text-sm text-slate-400">{place.category}</p>
+            </div>
+            <div className="flex items-center space-x-3 ml-2">
+                 {navigator.share && (
+                    <button onClick={handleShare} className="p-2 rounded-full hover:bg-gray-600" aria-label={`Share ${place.name}`}>
+                        <ShareIcon className="w-5 h-5 text-slate-300" />
+                    </button>
+                )}
+                <StarIcon className="w-6 h-6 text-[#F9B233]" />
+            </div>
         </div>
-        <StarIcon className="w-6 h-6 text-[#F9B233]" />
-    </div>
-)
+    );
+}
 
 const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ onMenuClick }) => {
     const [activeTab, setActiveTab] = useState<'favorites' | 'recents'>('favorites');
@@ -62,10 +87,16 @@ const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ onMenuClick }) => {
                 </div>
             </div>
 
-            <main className="flex-grow p-4">
+            <main key={activeTab} className="flex-grow p-4">
                 <div className="space-y-4">
-                    {content.map(place => (
-                        <PlaceRow key={place.name} place={place} />
+                    {content.map((place, index) => (
+                        <div
+                            key={place.name}
+                            className="animate-fade-in-up"
+                            style={{ animationDelay: `${index * 100}ms` }}
+                        >
+                            <PlaceRow place={place} />
+                        </div>
                     ))}
                 </div>
             </main>
