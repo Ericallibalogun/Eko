@@ -19,8 +19,11 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from the React app build
-app.use(express.static(path.join(__dirname, '../dist')));
+// In production, we don't serve static files from the backend
+if (process.env.NODE_ENV !== 'production') {
+  // Serve static files from the React app build
+  app.use(express.static(path.join(__dirname, '../dist')));
+}
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/eko-navigation')
@@ -33,17 +36,29 @@ import userRoutes from './routes/users.js';
 import placeRoutes from './routes/places.js';
 import chatRoutes from './routes/chat.js';
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    service: 'EKO Navigation Backend'
+  });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/places', placeRoutes);
 app.use('/api/chat', chatRoutes);
 
-// The "catchall" handler: for any request that doesn't
-// match one of the previous routes, send back React's index.html file.
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
-});
+// In production, we don't need the catchall handler
+if (process.env.NODE_ENV !== 'production') {
+  // The "catchall" handler: for any request that doesn't
+  // match one of the previous routes, send back React's index.html file.
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
