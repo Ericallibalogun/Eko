@@ -1,177 +1,88 @@
-```markdown
 <div align="center">
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Eko — Frontend Overview
+# EKO Navigation App
 
-This README describes the frontend of the Eko application: its features, how to run it locally, environment variables, folder layout, and how to contribute. (Note: references to any external product pages were intentionally removed — this README focuses only on the app and its frontend.)
+This contains everything you need to run your app locally.
 
----
+View your app in AI Studio: https://ai.studio/apps/drive/10dyVT_Cp5c55_ZJHGqC8wbSvTt1UglUp
 
-## What the frontend provides
+## Run Locally
 
-The frontend implements a user-facing interface for interacting with models, managing sessions and files, and performing common AI workflows. The list below is written to be comprehensive; if you want it trimmed to exactly match the code in the repository, I can extract the component names and exact features if you grant access or paste the frontend file list.
+**Prerequisites:** Node.js, MongoDB
 
-Key frontend features
+### Frontend
 
-- Responsive UI
-  - Layouts that adapt to desktop, tablet and mobile
-  - Collapsible navigation and mobile-friendly menus
+1. Install dependencies:
 
-- Authentication & User Sessions
-  - Sign in / Sign out flows and session persistence (cookies/localStorage)
-  - Account pages and API key / credential display (if supported)
-
-- Dashboard / Home
-  - Overview panels for recent activity, quick actions and usage stats￼
-close
-
-  - Recent projects or sessions list with quick-open actions
-
-- Conversational / Chat Interface
-  - Message list with user and assistant bubbles
-  - Support for streaming/incremental responses
-  - Markdown rendering with code block highlighting
-  - Copy-to-clipboard, edit and delete message actions
-
-- Model & Request Controls
-  - Model selection UI (choose model/engine)
-  - Parameter controls (temperature, max tokens, top_p, etc.)
-  - Request history and retry controls
-  - Loading indicators and request status
-
-- File & Data Input
-  - File upload (drag & drop and file picker)
-  - File preview (text, images, PDFs) and basic metadata
-  - Attach files to conversations or use files as model inputs
-
-- Prompt Tools & Templates
-  - Saved prompt templates and quick prompts panel
-  - Common transformation tools (summarize, translate, rewrite, extract)
-
-- Export & Persistence
-  - Save/export conversations and outputs (JSON/markdown)
-  - Local export and (if supported) integration with backend storage
-
-- Multimedia Support (where available)
-  - Microphone/voice input and audio transcription UI
-  - Audio playback and transcript viewer
-  - Image input and image preview flows
-
-- Settings & Preferences
-  - Theme toggle (light/dark/system)
-  - Language/locale settings
-  - Account and API key management pages
-
-- Notifications & Error Handling
-  - Toasts for success, warning, and error
-  - Modal confirmations and clear error messages
-  - Retry UI for failed requests
-
-- Accessibility & Keyboard Navigation
-  - Keyboard-first navigation and ARIA attributes
-  - Focus management and screen-reader friendly markup
-
-- Performance & Developer Experience
-  - Lazy-loaded routes and components
-  - Loading skeletons / spinners
-  - Developer debug tools (logs, environment warnings)
-  - Testing skeletons (unit/integration tests suggested)
-
----
-
-## Screenshots / Demos (placeholders)
-
-Add screenshots or animated GIFs to the repo in /public or /assets and reference them here:
-
-- assets/screenshots/dashboard.png
-- assets/screenshots/chat.png
-- assets/screenshots/uploader.png
-
----
-
-## Run the frontend locally
-
-Prerequisites: Node.js (LTS recommended)
-
-1. Install dependencies
+   ```bash
    npm install
+   ```
 
-2. Create environment file
-   - Copy .env.example (if present) or create .env.local and add required keys.
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 
-   Typical environment variables used by the frontend (update to match your project):
-   - NEXT_PUBLIC_API_URL — base URL for your backend API (if applicable)
-   - NEXT_PUBLIC_ANALYTICS_ID — analytics id (optional)
-   - NEXT_PUBLIC_FEATURE_FLAGS — feature toggles (optional)
-
-   Note: Any secrets (API keys for protected services) should be provided server-side when possible.
-   If the frontend requires a server-side API key for model calls, keep it in server-side env files and never commit secrets.
-
-3. Run in development
+3. Run the app:
+   ```bash
    npm run dev
-   - Open http://localhost:3000 (or the address indicated by your framework)
+   ```
 
-4. Build for production
-   npm run build
-   npm start
+### Backend
 
-Adjust commands if your project uses a different framework or package scripts (e.g., pnpm, yarn, Next.js app directory).
+1. Navigate to the backend directory:
 
----
+   ```bash
+   cd backend
+   ```
 
-## Folder structure (typical)
+2. Install dependencies:
 
-Below is a common frontend layout — update to match your repository exactly:
+   ```bash
+   npm install
+   ```
 
-- src/
-  - components/       — reusable UI components (Chat, Navbar, Uploader, Modal)
-  - pages/ or app/     — top-level routes and pages
-  - styles/            — CSS, variables, theme tokens
-  - hooks/             — reusable React hooks
-  - lib/               — API clients, utilities
-  - contexts/          — React context providers (auth, theme)
-  - public/            — static assets (images, icons)
-  - tests/             — unit and integration tests
+3. Make sure MongoDB is running:
 
----
+   ```bash
+   mongod
+   ```
 
-## Environment variables (examples)
+4. Start the backend server:
+   ```bash
+   npm run dev
+   ```
 
-- NEXT_PUBLIC_API_URL — client-side API base URL
-- NEXTAUTH_URL — authentication callback URL (if using NextAuth)
-- OAUTH_CLIENT_ID — OAuth client id (if applicable)
-- SENTRY_DSN ￼
-close
-— error reporting DSN (optional)
+## Deployment
 
-Do not commit secrets. Use server environment variables or secret managers.
+### Backend Deployment
 
----
+The backend is already deployed and running at: https://eko-7.onrender.com
 
-## Contributing
+### Frontend Deployment
 
-Contributions are welcome:
+For frontend deployment instructions, please refer to the [FRONTEND_DEPLOYMENT.md](FRONTEND_DEPLOYMENT.md) file.
 
-- Fork the repository
-- Create a feature branch: git checkout -b feat/some-feature
-- Add tests and update docs
-- Open a pull request with a clear description of the change
-￼
-close
+You can deploy the frontend using:
 
-Include any frontend design guidelines or component patterns to keep the UI consistent.
+- Netlify (recommended)
+- Vercel
+- GitHub Pages
 
----
+### Environment Variables
 
-## License & Contact
+Create a `.env.local` file in the root directory with:
 
-- License: add your license (e.g., MIT)
-- Author: Ericallibalogun
-- Contact: add preferred contact method (email or GitHub profile)
-
----
-
-If you want me to produce an exact, repository-accurate frontend features list and component map, I can do that next — I currently don't have access to read the repository files from here. You can either paste the list of files under src/ or grant access for me to scan the frontend; I will then update this README to exactly match the code (component names, routes, environment variables and screenshots).
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
+
+Create a `.env` file in the backend directory with:
+
+```env
+MONGODB_URI=mongodb://localhost:27017/eko-navigation
+JWT_SECRET=your_jwt_secret_here
+PORT=5000
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+For production deployment, replace the MONGODB_URI with your MongoDB Atlas connection string.
