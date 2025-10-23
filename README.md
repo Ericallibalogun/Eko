@@ -54,13 +54,19 @@ View your app in AI Studio: https://ai.studio/apps/drive/10dyVT_Cp5c55_ZJHGqC8wb
 
 ## Deployment
 
-For deployment instructions, please refer to the [backend/DEPLOYMENT.md](backend/DEPLOYMENT.md) file.
+### Backend Deployment
 
-This application can be deployed using:
+The backend is already deployed and running at: https://eko-7.onrender.com
 
-- Backend: Render (recommended) or Heroku
-- Frontend: Netlify (recommended) or Vercel
-- Database: MongoDB Atlas (required for deployment)
+### Frontend Deployment
+
+For frontend deployment instructions, please refer to the [FRONTEND_DEPLOYMENT.md](FRONTEND_DEPLOYMENT.md) file.
+
+You can deploy the frontend using:
+
+- Netlify (recommended)
+- Vercel
+- GitHub Pages
 
 ### Environment Variables
 

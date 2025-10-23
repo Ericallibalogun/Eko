@@ -2,8 +2,8 @@
 
 // Use different API base URLs for development and production
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? '/api'  // When deployed, backend serves frontend and API is relative
-  : 'http://localhost:5000/api';  // For local development
+  ? 'https://eko-7.onrender.com/api'  // Production backend URL
+  : 'http://localhost:5000/api';      // Local development
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
