@@ -1,8 +1,5 @@
-
-
-
 import React, { useState, useEffect } from 'react';
-import { Screen, Settings } from './types';
+import { Screen, Settings, UserProfile } from './types';
 import SplashScreen from './components/SplashScreen';
 import OnboardingScreen from './components/OnboardingScreen';
 import PermissionsScreen from './components/PermissionsScreen';
@@ -15,7 +12,7 @@ import LoginScreen from './components/LoginScreen';
 import SignupScreen from './components/SignupScreen';
 import ARScreen from './components/ARScreen';
 import { LanguageProvider } from './i18n/LanguageContext';
-
+import { userAPI } from './services/apiService';
 
 const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>(Screen.Splash);
@@ -25,6 +22,7 @@ const App: React.FC = () => {
     language: 'English',
     mapSource: 'OpenStreetMap'
   });
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     if (currentScreen === Screen.Splash) {
@@ -46,6 +44,25 @@ const App: React.FC = () => {
     }
   }, [settings.theme])
 
+  // Fetch user profile when user logs in
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        // Only fetch if we're past the login screen and have a token
+        if (![Screen.Splash, Screen.Onboarding, Screen.Login, Screen.Signup].includes(currentScreen)) {
+          const profile = await userAPI.getProfile();
+          setUserProfile(profile);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+        // If we can't fetch the profile, we might want to redirect to login
+        // setCurrentScreen(Screen.Login);
+      }
+    };
+
+    fetchUserProfile();
+  }, [currentScreen]);
+
   const renderScreen = () => {
     switch (currentScreen) {
       case Screen.Splash:
@@ -65,7 +82,7 @@ const App: React.FC = () => {
        case Screen.Favorites:
         return <FavoritesScreen onMenuClick={() => setIsSidebarOpen(true)} />;
        case Screen.Settings:
-        return <SettingsScreen onMenuClick={() => setIsSidebarOpen(true)} settings={settings} setSettings={setSettings} />;
+        return <SettingsScreen onMenuClick={() => setIsSidebarOpen(true)} settings={settings} setSettings={setSettings} userProfile={userProfile} />;
        case Screen.AR:
         return <ARScreen onExit={() => setCurrentScreen(Screen.Home)} />;
       default:
@@ -85,6 +102,7 @@ const App: React.FC = () => {
               onClose={() => setIsSidebarOpen(false)}
               onNavigate={(screen) => setCurrentScreen(screen)}
               currentScreen={currentScreen}
+              userProfile={userProfile}
           />
         )}
       </div>

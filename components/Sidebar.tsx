@@ -1,6 +1,3 @@
-
-
-
 import React from 'react';
 import { Screen, UserProfile } from '../types';
 import { HomeIcon, CompassIcon, StarIcon, ClockIcon, SettingsIcon, InfoIcon, XIcon } from './Icons';
@@ -13,6 +10,7 @@ interface SidebarProps {
   onClose: () => void;
   onNavigate: (screen: Screen) => void;
   currentScreen: Screen;
+  userProfile: UserProfile | null;
 }
 
 const NavItem: React.FC<{
@@ -33,8 +31,11 @@ const NavItem: React.FC<{
 );
 
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onNavigate, currentScreen }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onNavigate, currentScreen, userProfile }) => {
     const { t } = useLanguage();
+    
+    // Use the fetched user profile or fallback to the default one
+    const displayUserProfile = userProfile || USER_PROFILE;
     
     const handleNavigation = (screen: Screen) => {
         onNavigate(screen);
@@ -60,9 +61,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onNavigate, currentS
         </div>
         
         <div className="flex items-center p-3 bg-gray-900/50 rounded-lg mb-8">
-            <Avatar src={USER_PROFILE.avatarUrl} alt="User" className="w-12 h-12 rounded-full border-2 border-[#008751]" />
+            <Avatar src={displayUserProfile.avatarUrl} alt="User" className="w-12 h-12 rounded-full border-2 border-[#008751]" />
             <div className="ml-3">
-                <p className="font-bold">{USER_PROFILE.name}</p>
+                <p className="font-bold">{displayUserProfile.name}</p>
                 <p className="text-sm text-slate-400">{t('sidebar_welcome_user')}</p>
             </div>
         </div>
