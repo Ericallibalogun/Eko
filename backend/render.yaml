@@ -3,7 +3,7 @@ services:
     name: eko-navigation-backend
     env: node
     buildCommand: npm install
-    startCommand: node server.js
+    startCommand: node src/server.js
     envVars:
       - key: NODE_VERSION
         value: 22

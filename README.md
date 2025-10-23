@@ -52,6 +52,16 @@ View your app in AI Studio: https://ai.studio/apps/drive/10dyVT_Cp5c55_ZJHGqC8wb
    npm run dev
    ```
 
+## Deployment
+
+For deployment instructions, please refer to the [backend/DEPLOYMENT.md](backend/DEPLOYMENT.md) file.
+
+This application can be deployed using:
+
+- Backend: Render (recommended) or Heroku
+- Frontend: Netlify (recommended) or Vercel
+- Database: MongoDB Atlas (required for deployment)
+
 ### Environment Variables
 
 Create a `.env.local` file in the root directory with:
@@ -66,4 +76,7 @@ Create a `.env` file in the backend directory with:
 MONGODB_URI=mongodb://localhost:27017/eko-navigation
 JWT_SECRET=your_jwt_secret_here
 PORT=5000
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
+
+For production deployment, replace the MONGODB_URI with your MongoDB Atlas connection string.

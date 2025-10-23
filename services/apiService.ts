@@ -1,5 +1,9 @@
 // services/apiService.ts
-const API_BASE_URL = 'http://localhost:5000/api';
+
+// Use different API base URLs for development and production
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? '/api'  // When deployed, backend serves frontend and API is relative
+  : 'http://localhost:5000/api';  // For local development
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
