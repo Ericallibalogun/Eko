@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useLanguage } from '../i18n/LanguageContext';
 import ImageWithFallback from './ImageWithFallback';
@@ -51,7 +52,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
             <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-[#121212]/70 to-transparent"></div>
         </div>
 
-      <div className="absolute bottom-0 left-0 right-0 p-8 text-center bg-[#121212] bg-opacity-70 backdrop-blur-sm rounded-t-3xl">
+      <div key={currentStep} className="absolute bottom-0 left-0 right-0 p-8 text-center bg-[#121212] bg-opacity-70 backdrop-blur-sm rounded-t-3xl animate-fade-in">
         <h2 className="text-3xl font-bold font-poppins mb-4">{t(step.titleKey as any)}</h2>
         <p className="text-slate-300 mb-8 max-w-md mx-auto">{t(step.descriptionKey as any)}</p>
 

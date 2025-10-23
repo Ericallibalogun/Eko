@@ -17,6 +17,13 @@ export interface Place {
   description:string;
 }
 
+export interface CulturalLandmark {
+  name: string;
+  description: string;
+  lat: number;
+  lon: number;
+}
+
 export interface SavedPlace {
     name: string;
     category: string;
@@ -43,4 +50,13 @@ export interface SettingsSection {
         options?: string[];
         key: keyof Settings;
     }[];
+}
+
+export interface Route {
+    name:string;
+    summary: string;
+    distance: string;
+    duration: string;
+    polyline: [number, number][]; // Array of [lat, lon]
+    steps: string[];
 }

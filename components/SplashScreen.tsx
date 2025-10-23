@@ -23,7 +23,7 @@ const SplashScreen: React.FC = () => {
     }, []);
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-[#121212] text-white">
+        <div className="flex flex-col items-center justify-center h-screen bg-[#121212] text-white animate-fade-in">
             <EkoLogo />
             <p className="mt-6 text-slate-300">{t('splash_tagline')}</p>
             <div className="w-1/3 h-1 mt-4 bg-gray-700 rounded-full overflow-hidden">
