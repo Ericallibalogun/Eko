@@ -25,19 +25,37 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // CORS configuration for development and production
-const corsOptions = {
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:3002',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:3001',
-    'http://127.0.0.1:3002',
-    'https://eko-gamma.vercel.app'  // Removed trailing slash
-  ],
-  credentials: true,
-  optionsSuccessStatus: 200
-};
+let corsOptions;
+
+// Check if we should allow all origins (for development/testing)
+if (process.env.CORS_ALLOW_ALL === 'true') {
+  corsOptions = {
+    origin: true, // Reflect the request origin
+    credentials: true,
+    optionsSuccessStatus: 200
+  };
+} else {
+  // Default CORS configuration
+  corsOptions = {
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:3001',
+      'http://127.0.0.1:3002',
+      'https://eko-gamma.vercel.app'
+    ],
+    credentials: true,
+    optionsSuccessStatus: 200
+  };
+
+  // Add any additional origins from environment variable
+  if (process.env.CORS_ADDITIONAL_ORIGINS) {
+    const additionalOrigins = process.env.CORS_ADDITIONAL_ORIGINS.split(',');
+    corsOptions.origin = [...corsOptions.origin, ...additionalOrigins];
+  }
+}
 
 // Middleware
 app.use(cors(corsOptions));
