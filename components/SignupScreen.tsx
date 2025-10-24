@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+
+
+import React from 'react';
 import { GoogleIcon } from './Icons';
 import { useLanguage } from '../i18n/LanguageContext';
-import { authAPI } from '../services/apiService';
 
 interface SignupScreenProps {
   onComplete: () => void;
@@ -16,25 +17,6 @@ const EkoLogoSmall: React.FC = () => (
 
 const SignupScreen: React.FC<SignupScreenProps> = ({ onComplete, onLogin }) => {
   const { t } = useLanguage();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
-  const handleSignup = async () => {
-    try {
-      // Use the authAPI service to make the signup request
-      const response = await authAPI.register({ name, email, password });
-      console.log('Signup successful:', response);
-      
-      // On success, proceed to the next screen in the app.
-      onComplete();
-    } catch (error) {
-      // Handle signup failure
-      console.error('Signup failed:', error);
-      alert('Signup failed. Please try again.');
-    }
-  };
-
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-[#1A2E27] text-white p-6">
       <div className="w-full max-w-sm text-center">
@@ -52,25 +34,19 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ onComplete, onLogin }) => {
                 type="text" 
                 placeholder={t('fullname_placeholder')}
                 className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-400 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#008751]"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
             />
             <input 
                 type="email" 
                 placeholder={t('email_placeholder')}
                 className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-400 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#008751]"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
             />
              <input 
                 type="password" 
                 placeholder={t('password_placeholder')}
                 className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-400 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#008751]"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
             />
             <button
-              onClick={handleSignup}
+              onClick={onComplete}
               className="w-full bg-[#008751] hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 shadow-lg transform hover:scale-105"
             >
               {t('signup_button')}

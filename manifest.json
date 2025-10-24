@@ -1,0 +1,22 @@
+{
+  "short_name": "EKO Nav",
+  "name": "EKO Navigation",
+  "description": "A modern navigation app designed to help users explore Lagos, discover its culture, and find routes easily, with features like offline maps, local language support, and a cultural discovery mode.",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1A2E27",
+  "background_color": "#121212",
+  "scope": "/"
+}

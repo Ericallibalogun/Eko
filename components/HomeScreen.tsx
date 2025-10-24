@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Screen, Route, CulturalLandmark } from '../types';
+import { Screen, Route, CulturalLandmark, Settings } from '../types';
 import { MenuIcon, SearchIcon, TargetIcon, LayersIcon, CameraIcon, MessageSquareIcon, PlusIcon, MinusIcon, DirectionsIcon, LandmarkIcon } from './Icons';
 import { USER_PROFILE } from '../constants';
 import EkoBot from './EkoBot';
@@ -15,7 +15,8 @@ import L, { Map as LeafletMap } from 'leaflet';
 interface HomeScreenProps {
   onMenuClick: () => void;
   onNavigate: (screen: Screen) => void;
-  mapSource: 'OpenStreetMap' | 'Google Maps';
+  settings: Settings;
+  setSettings: React.Dispatch<React.SetStateAction<Settings>>;
 }
 
 const ActionButton: React.FC<{ children: React.ReactNode; className?: string; onClick?: () => void, 'aria-label': string }> = ({ children, className, onClick, 'aria-label': ariaLabel }) => (
@@ -58,11 +59,10 @@ const culturalLandmarkIcon = L.divIcon({
 });
 
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ onMenuClick, onNavigate }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ onMenuClick, onNavigate, settings, setSettings }) => {
   const [isBotOpen, setIsBotOpen] = useState(false);
-  const [mapLayer, setMapLayer] = useState('Mapnik');
   const [showLayers, setShowLayers] = useState(false);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const searchRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap>(null);
   
@@ -83,23 +83,22 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onMenuClick, onNavigate }) => {
   const [isRoutePlannerVisible, setIsRoutePlannerVisible] = useState(false);
   const [routes, setRoutes] = useState<Route[]>([]);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
+  const [routeDestination, setRouteDestination] = useState<{ name: string; coords: { lat: number; lon: number; }; } | null>(null);
 
   // Cultural Discovery Mode State
   const [isCulturalModeActive, setIsCulturalModeActive] = useState(false);
   const [culturalLandmarks, setCulturalLandmarks] = useState<CulturalLandmark[]>([]);
   const [selectedLandmark, setSelectedLandmark] = useState<CulturalLandmark | null>(null);
 
-
-  const layers = {
-    Mapnik: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    CycleMap: "https://{s}.tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=YOUR_API_KEY",
-    TransportMap: "https://{s}.tile.thunderforest.com/transport/{z}/{x}/{y}.png?apikey=YOUR_API_KEY"
+  const layers: Record<Settings['mapSource'], string> = {
+    OpenStreetMap: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    'Google Maps': "https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
   };
   
   const loadCulturalLandmarks = useCallback(async (bounds: L.LatLngBounds) => {
-      const landmarks = await fetchCulturalLandmarks(bounds as any);
+      const landmarks = await fetchCulturalLandmarks(bounds as any, language);
       setCulturalLandmarks(landmarks);
-  }, []);
+  }, [language]);
 
   const MapEvents = () => {
       const map = useMapEvents({
@@ -146,12 +145,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onMenuClick, onNavigate }) => {
       const handler = setTimeout(async () => {
           setShowSuggestions(true);
           setIsSearching(true);
-          const fetchedSuggestions = await fetchSearchSuggestions(searchQuery);
+          const fetchedSuggestions = await fetchSearchSuggestions(searchQuery, language);
           setSuggestions(fetchedSuggestions);
           setIsSearching(false);
       }, 500);
       return () => clearTimeout(handler);
-  }, [searchQuery]);
+  }, [searchQuery, language]);
     
   useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
@@ -207,6 +206,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onMenuClick, onNavigate }) => {
           setSelectedRoute(foundRoutes[0]);
       }
   };
+  
+  const handleGetDirections = (landmark: CulturalLandmark) => {
+    setSelectedLandmark(null); // Close modal
+    setRouteDestination({
+        name: landmark.name,
+        coords: { lat: landmark.lat, lon: landmark.lon }
+    });
+    setIsRoutePlannerVisible(true);
+  };
 
   const clearRoutes = () => {
       setRoutes([]);
@@ -225,9 +233,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onMenuClick, onNavigate }) => {
       <MapContainer center={mapCenter} zoom={13} scrollWheelZoom={true} style={{ height: '100%', width: '100%', zIndex: 10 }} ref={mapRef} zoomControl={false}>
         <ChangeView center={mapCenter} zoom={15} bounds={mapBounds} />
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url={layers[mapLayer as keyof typeof layers].replace('YOUR_API_KEY', 'b5a8e312f3474c35b5a4b7a7f83b63c7')}
-          key={mapLayer}
+          attribution={settings.mapSource === 'Google Maps' 
+            ? '&copy; Google' 
+            : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}
+          url={layers[settings.mapSource]}
+          key={settings.mapSource}
         />
         <MapEvents />
 
@@ -262,9 +272,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onMenuClick, onNavigate }) => {
       
       {isRoutePlannerVisible && (
         <RoutePlanner 
-            onClose={() => setIsRoutePlannerVisible(false)}
+            onClose={() => {
+                setIsRoutePlannerVisible(false);
+                setRouteDestination(null);
+            }}
             onRoutesFound={handleRoutesFound}
             userLocation={userLocation}
+            initialDestination={routeDestination}
         />
       )}
 
@@ -337,12 +351,18 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onMenuClick, onNavigate }) => {
         </button>
        </div>
       
-      <EkoBot isOpen={isBotOpen} onClose={() => setIsBotOpen(false)} />
+      <EkoBot 
+        isOpen={isBotOpen} 
+        onClose={() => setIsBotOpen(false)} 
+        isTtsEnabled={settings.ttsEnabled}
+        onToggleTts={() => setSettings(s => ({ ...s, ttsEnabled: !s.ttsEnabled }))}
+      />
 
       {selectedLandmark && (
           <CulturalLandmarkModal 
               landmark={selectedLandmark}
               onClose={() => setSelectedLandmark(null)}
+              onGetDirections={handleGetDirections}
           />
       )}
 
@@ -352,6 +372,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onMenuClick, onNavigate }) => {
             selectedRoute={selectedRoute}
             onSelectRoute={setSelectedRoute}
             onClose={clearRoutes}
+            isTtsEnabled={settings.ttsEnabled}
+            onToggleTts={() => setSettings(s => ({ ...s, ttsEnabled: !s.ttsEnabled }))}
         />
       )}
 
@@ -360,11 +382,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onMenuClick, onNavigate }) => {
               <div className="bg-gray-800 rounded-lg p-4 shadow-lg w-64 text-white" onClick={(e) => e.stopPropagation()}>
                   <h3 className="font-bold text-lg mb-4 text-center">{t('home_map_layers')}</h3>
                   <ul className="space-y-2">
-                      {Object.keys(layers).map(layer => (
+                      {(Object.keys(layers) as Array<keyof typeof layers>).map(layer => (
                           <li key={layer}>
                               <button 
-                                  onClick={() => { setMapLayer(layer); setShowLayers(false); }}
-                                  className={`w-full text-left p-3 rounded-lg transition-colors ${mapLayer === layer ? 'bg-[#008751] text-white' : 'hover:bg-gray-700'}`}
+                                  onClick={() => { 
+                                      setSettings(s => ({ ...s, mapSource: layer }));
+                                      setShowLayers(false); 
+                                  }}
+                                  className={`w-full text-left p-3 rounded-lg transition-colors ${settings.mapSource === layer ? 'bg-[#008751] text-white' : 'hover:bg-gray-700'}`}
                               >
                                   {layer}
                               </button>
