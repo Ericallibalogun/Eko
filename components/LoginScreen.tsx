@@ -1,8 +1,7 @@
-
-
 import React, { useState } from 'react';
 import { GoogleIcon } from './Icons';
 import { useLanguage } from '../i18n/LanguageContext';
+import { authAPI } from '../services/apiService';
 
 interface LoginScreenProps {
   onComplete: () => void;
@@ -18,6 +17,8 @@ const EkoLogoSmall: React.FC = () => (
 const LoginScreen: React.FC<LoginScreenProps> = ({ onComplete, onSignup }) => {
   const { t } = useLanguage();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
@@ -27,41 +28,35 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onComplete, onSignup }) => {
     const googleAuthToken = 'mock-google-auth-token'; // This is a placeholder.
 
     try {
-        // The frontend then sends this token to your backend API.
-        const response = await fetch('/api/auth/google', { // NOTE: This is a placeholder endpoint
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ token: googleAuthToken }),
-        });
-
-        if (response.ok) {
-            // The backend verifies the token with Google, creates a user session,
-            // and might return user data or a session token (e.g., JWT).
-            // const data = await response.json(); 
-            // console.log('Backend login successful:', data);
-            
-            // On success, proceed to the next screen in the app.
-            onComplete();
-        } else {
-            // Handle login failure from the backend
-            alert('Google login failed. Please try again.');
-        }
-    } catch (error) {
-        // This catch block handles network errors, e.g., if the backend is down.
-        // Since the backend doesn't exist in this environment, the fetch will fail.
-        // We will log a warning and proceed to the next screen to ensure the app is usable.
-        console.warn('Could not connect to backend for Google sign-in. Simulating successful login.');
+        // Use the authAPI service to make the Google login request
+        const response = await authAPI.googleLogin(googleAuthToken);
+        console.log('Backend login successful:', response);
         
-        // Simulate a small delay for user experience before proceeding
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // On success, proceed to the next screen in the app.
         onComplete();
+    } catch (error) {
+        // Handle login failure from the backend
+        console.error('Google login failed:', error);
+        alert('Google login failed. Please try again.');
     } finally {
         setIsGoogleLoading(false);
     }
   };
 
+  const handleLogin = async () => {
+    try {
+      // Use the authAPI service to make the login request
+      const response = await authAPI.login({ email, password });
+      console.log('Login successful:', response);
+      
+      // On success, proceed to the next screen in the app.
+      onComplete();
+    } catch (error) {
+      // Handle login failure
+      console.error('Login failed:', error);
+      alert('Login failed. Please check your credentials and try again.');
+    }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-[#1A2E27] text-white p-6">
@@ -80,14 +75,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onComplete, onSignup }) => {
                 type="email" 
                 placeholder={t('email_placeholder')}
                 className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-400 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#008751]"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
             />
              <input 
                 type="password" 
                 placeholder={t('password_placeholder')}
                 className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-400 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#008751]"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
             />
             <button
-              onClick={onComplete}
+              onClick={handleLogin}
               className="w-full bg-[#008751] hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 shadow-lg transform hover:scale-105"
             >
               {t('login_button')}
