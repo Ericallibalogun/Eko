@@ -1,6 +1,8 @@
+// services/apiService.ts
 
+// Use different API base URLs for development and production
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://eko-7.onrender.com/api'  // Production backend URL
+  ? 'https://eko-8.onrender.com/api'  // Production backend URL
   : 'http://localhost:5000/api';      // Local development
 
 // Helper function to get auth headers
