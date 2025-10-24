@@ -1,7 +1,7 @@
 import React from 'react';
 import { MenuIcon, ChevronDownIcon } from './Icons';
 import { USER_PROFILE, SETTINGS_CONFIG } from '../constants';
-import type { SettingsSection, Settings } from '../types';
+import type { SettingsSection, Settings, UserProfile } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
 import { translations } from '../i18n/translations';
 import Avatar from './Avatar';
@@ -10,28 +10,8 @@ interface SettingsScreenProps {
     onMenuClick: () => void;
     settings: Settings;
     setSettings: React.Dispatch<React.SetStateAction<Settings>>;
+    userProfile: UserProfile | null;
 }
-
-const ToggleSwitch: React.FC<{
-    checked: boolean;
-    onChange: (checked: boolean) => void;
-}> = ({ checked, onChange }) => (
-    <button
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-        className={`${
-            checked ? 'bg-[#008751]' : 'bg-gray-600'
-        } relative inline-flex items-center h-6 rounded-full w-11 transition-colors`}
-    >
-        <span
-            className={`${
-                checked ? 'translate-x-6' : 'translate-x-1'
-            } inline-block w-4 h-4 transform bg-white rounded-full transition-transform`}
-        />
-    </button>
-);
-
 
 const SelectInput: React.FC<{ 
     options: string[],
@@ -55,13 +35,12 @@ const SettingsSectionComponent: React.FC<{
     const { t } = useLanguage();
     
     const getLabel = (key: keyof Settings) => {
-        const keyMap: Record<keyof Settings, keyof typeof translations.English> = {
+        const keyMap: Partial<Record<keyof Settings, keyof typeof translations.English>> = {
             theme: 'settings_theme',
             language: 'settings_language',
-            mapSource: 'settings_map_source',
-            ttsEnabled: 'settings_tts'
+            mapSource: 'settings_map_source'
         }
-        return t(keyMap[key]);
+        return keyMap[key] ? t(keyMap[key]!) : key;
     }
 
     return (
@@ -75,16 +54,10 @@ const SettingsSectionComponent: React.FC<{
                             <div className="w-40">
                                 <SelectInput 
                                     options={item.options} 
-                                    value={settings[item.key] as string}
+                                    value={settings[item.key]}
                                     onChange={(e) => setSettings(s => ({...s, [item.key]: e.target.value as any}))}
                                 />
                             </div>
-                        )}
-                        {item.type === 'toggle' && (
-                            <ToggleSwitch 
-                                checked={!!settings[item.key]}
-                                onChange={(checked) => setSettings(s => ({ ...s, [item.key]: checked }))}
-                            />
                         )}
                     </div>
                 ))}
@@ -93,8 +66,12 @@ const SettingsSectionComponent: React.FC<{
     );
 }
 
-const SettingsScreen: React.FC<SettingsScreenProps> = ({ onMenuClick, settings, setSettings }) => {
+const SettingsScreen: React.FC<SettingsScreenProps> = ({ onMenuClick, settings, setSettings, userProfile }) => {
     const { t } = useLanguage();
+    
+    // Use the fetched user profile or fallback to the default one
+    const displayUserProfile = userProfile || USER_PROFILE;
+    
     return (
         <div className="bg-[#121212] min-h-screen text-white">
             <header className="sticky top-0 bg-[#121212]/80 backdrop-blur-md p-4 z-10 flex items-center justify-between text-white">
@@ -103,7 +80,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onMenuClick, settings, 
                 </button>
                 <h1 className="text-2xl font-bold font-poppins">{t('settings_header')}</h1>
                  <button className="p-2 rounded-full hover:bg-gray-700/50">
-                   <Avatar src={USER_PROFILE.avatarUrl} alt="user" className="w-8 h-8 rounded-full" />
+                   <Avatar src={displayUserProfile.avatarUrl} alt="user" className="w-8 h-8 rounded-full" />
                 </button>
             </header>
 
@@ -113,10 +90,10 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onMenuClick, settings, 
                     <h3 className="text-lg font-bold text-slate-400 mb-4 px-2">{t('settings_account')}</h3>
                     <div className="bg-gray-800/50 rounded-lg p-4 flex items-center justify-between">
                         <div className="flex items-center">
-                            <Avatar src={USER_PROFILE.avatarUrl} alt="User" className="w-16 h-16 rounded-full border-2 border-[#008751]" />
+                            <Avatar src={displayUserProfile.avatarUrl} alt="User" className="w-16 h-16 rounded-full border-2 border-[#008751]" />
                             <div className="ml-4">
-                                <p className="font-bold text-xl">{USER_PROFILE.name}</p>
-                                <p className="text-sm text-slate-400">{USER_PROFILE.email}</p>
+                                <p className="font-bold text-xl">{displayUserProfile.name}</p>
+                                <p className="text-sm text-slate-400">{displayUserProfile.email}</p>
                             </div>
                         </div>
                         <button className="bg-red-600/80 hover:bg-red-700/80 text-white font-bold py-2 px-4 rounded-lg transition">{t('settings_logout')}</button>
