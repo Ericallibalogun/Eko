@@ -22,7 +22,8 @@ const userSchema = new mongoose.Schema({
   avatarUrl: {
     type: String,
     default: function() {
-      return `https://api.pravatar.cc/150?u=${encodeURIComponent(this.email)}`;
+      // Use ui-avatars.com as a more reliable alternative to pravatar.cc
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(this.name)}&background=random`;
     }
   },
   settings: {
