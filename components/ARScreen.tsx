@@ -54,7 +54,7 @@ const ARScreen: React.FC<ARScreenProps> = ({ onExit }) => {
 
       {/* Top Bar */}
       <header className="absolute top-0 left-0 right-0 p-4 z-20 flex items-center justify-between">
-        <h1 className="text-xl font-bold bg-black/50 p-2 rounded-lg backdrop-blur-sm">AR Navigation Mode</h1>
+        <h1 className="text-xl font-bold bg-black/50 p-2 rounded-lg backdrop-blur-sm">{t('ar_mode_header')}</h1>
         <button 
           onClick={onExit} 
           aria-label="Exit AR Mode" 

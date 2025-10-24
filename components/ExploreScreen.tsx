@@ -47,19 +47,19 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({ onMenuClick }) => {
   const [selectedCategory, setSelectedCategory] = useState(categories[0].key);
   const [places, setPlaces] = useState<Place[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     const loadPlaces = async () => {
       setIsLoading(true);
       setPlaces([]); // Clear previous places
-      const fetchedPlaces = await fetchExplorePlaces(selectedCategory);
+      const fetchedPlaces = await fetchExplorePlaces(selectedCategory, language);
       setPlaces(fetchedPlaces);
       setIsLoading(false);
     };
 
     loadPlaces();
-  }, [selectedCategory]);
+  }, [selectedCategory, language]);
 
   return (
     <div className="bg-[#121212] min-h-screen text-white flex flex-col">

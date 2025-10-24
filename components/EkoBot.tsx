@@ -1,10 +1,10 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { XIcon, MaximizeIcon, MinimizeIcon, MicrophoneIcon } from './Icons';
-import { chatWithEkoBot } from '../services/geminiService';
+import { XIcon, MaximizeIcon, MinimizeIcon, MicrophoneIcon, Volume2Icon, VolumeXIcon } from './Icons';
+import { chatWithEkoBot, generateSpeech } from '../services/geminiService';
 import { USER_PROFILE } from '../constants';
 import { useLanguage } from '../i18n/LanguageContext';
 import Avatar from './Avatar';
+import { playAudio } from '../utils/audio';
 
 // Corrected Web Speech API type definitions for global scope
 declare global {
@@ -60,6 +60,8 @@ declare global {
 interface EkoBotProps {
   isOpen: boolean;
   onClose: () => void;
+  isTtsEnabled: boolean;
+  onToggleTts: () => void;
 }
 
 type Message = {
@@ -107,7 +109,7 @@ const renderMessageContent = (text: string) => {
     });
 };
 
-const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
+const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose, isTtsEnabled, onToggleTts }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [status, setStatus] = useState<Status>('idle');
@@ -179,11 +181,18 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
         const location = await getCurrentLocation();
 
         setStatus('thinking');
-        const botResponseText = await chatWithEkoBot(currentInput, historyForApi, location);
+        const botResponseText = await chatWithEkoBot(currentInput, historyForApi, language, location);
         const botMessage: Message = { role: 'model', text: botResponseText };
         
         setMessages(prev => [...prev, botMessage]);
         setStatus('idle');
+        
+        if (isTtsEnabled && botResponseText) {
+            const audioData = await generateSpeech(botResponseText);
+            if (audioData) {
+                await playAudio(audioData);
+            }
+        }
     };
 
     const toggleListening = () => {
@@ -238,6 +247,13 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose }) => {
         <header className="flex items-center justify-between p-4 border-b border-gray-700 flex-shrink-0">
             <h2 id="ekobot-heading" className="text-xl font-bold font-poppins">{t('ekobot_header')}</h2>
             <div className="flex items-center space-x-2">
+                 <button 
+                    onClick={onToggleTts} 
+                    className="p-1 rounded-full hover:bg-gray-700/50" 
+                    aria-label={isTtsEnabled ? "Disable Text-to-Speech" : "Enable Text-to-Speech"}
+                >
+                    {isTtsEnabled ? <Volume2Icon className="w-6 h-6" /> : <VolumeXIcon className="w-6 h-6" />}
+                </button>
                 <button 
                     onClick={() => setIsMaximized(!isMaximized)} 
                     className="p-1 rounded-full hover:bg-gray-700/50" 

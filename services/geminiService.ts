@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, Modality } from "@google/genai";
 import type { Place, Route, CulturalLandmark } from '../types';
 
 let ai: GoogleGenAI | null = null;
@@ -13,6 +13,12 @@ try {
   initializationError = "Failed to initialize AI service. Please ensure the API_KEY environment variable is correctly set for your deployment.";
   console.error(initializationError, e);
 }
+
+// --- Caching Implementation ---
+const exploreCache = new Map<string, Place[]>();
+const suggestionsCache = new Map<string, string[]>();
+const culturalLandmarksCache = new Map<string, CulturalLandmark[]>();
+const landmarkDetailsCache = new Map<string, { details: string; imageUrl: string; }>();
 
 
 const exploreResponseSchema = {
@@ -37,7 +43,12 @@ const exploreResponseSchema = {
   },
 };
 
-export const fetchExplorePlaces = async (category: string): Promise<Place[]> => {
+export const fetchExplorePlaces = async (category: string, language: string): Promise<Place[]> => {
+  const cacheKey = `${category}:${language}`;
+  if (exploreCache.has(cacheKey)) {
+    return exploreCache.get(cacheKey)!;
+  }
+  
   if (!ai) {
     return [
         { name: 'API Key Error', category: 'Error', description: initializationError! },
@@ -47,7 +58,7 @@ export const fetchExplorePlaces = async (category: string): Promise<Place[]> => 
   }
 
   try {
-    const prompt = `List 5 popular places in Lagos, Nigeria under the category "${category}". For each place, provide its name, a single category, and a brief one-sentence description.`;
+    const prompt = `List 5 popular places in Lagos, Nigeria under the category "${category}". For each place, provide its name, a single category, and a brief one-sentence description. Respond in the ${language} language.`;
     
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -60,6 +71,7 @@ export const fetchExplorePlaces = async (category: string): Promise<Place[]> => 
 
     const jsonText = response.text.trim();
     const places = JSON.parse(jsonText) as Place[];
+    exploreCache.set(cacheKey, places);
     return places;
 
   } catch (error) {
@@ -76,6 +88,7 @@ export const fetchExplorePlaces = async (category: string): Promise<Place[]> => 
 export const chatWithEkoBot = async (
     message: string, 
     history: { role: 'user' | 'model', parts: { text: string }[] }[],
+    language: string,
     location?: { lat: number, lon: number }
 ): Promise<string> => {
     if (!ai) {
@@ -85,7 +98,7 @@ export const chatWithEkoBot = async (
         const chat = ai.chats.create({
             model: 'gemini-2.5-flash',
             config: {
-                systemInstruction: "You are EkoBot, a hyper-local and witty navigation assistant for Lagos, Nigeria. You are an expert in all things Lagos. You must understand and respond fluently in English, Yoruba, Hausa, and Igbo. Crucially, you will always be provided with the user's current GPS coordinates (latitude, longitude) when they are available. When a user asks for something 'nearby', 'around here', or 'close to me', you MUST use these coordinates to give specific, relevant, and actionable recommendations. If no location is provided, you should state that you need their location for a better recommendation, but still provide general suggestions for Lagos. Your tone should be friendly, helpful, and concise.",
+                systemInstruction: `You are EkoBot, a hyper-local and witty navigation assistant for Lagos, Nigeria. You are an expert in all things Lagos. You MUST respond fluently in the user's specified language, which is ${language}. You must also understand English, Yoruba, Hausa, and Igbo. Crucially, you will always be provided with the user's current GPS coordinates (latitude, longitude) when they are available. When a user asks for something 'nearby', 'around here', or 'close to me', you MUST use these coordinates to give specific, relevant, and actionable recommendations. If no location is provided, you should state that you need their location for a better recommendation, but still provide general suggestions for Lagos. Your tone should be friendly, helpful, and concise.`,
             },
             history,
         });
@@ -114,14 +127,19 @@ const searchSuggestionsSchema = {
     required: ['suggestions']
 };
 
-export const fetchSearchSuggestions = async (query: string): Promise<string[]> => {
+export const fetchSearchSuggestions = async (query: string, language: string): Promise<string[]> => {
+    const cacheKey = `${query}:${language}`;
+    if (suggestionsCache.has(cacheKey)) {
+        return suggestionsCache.get(cacheKey)!;
+    }
+
     if (!ai) {
         console.error(initializationError || "Search service is unavailable.");
         return [];
     }
     if (!query || query.length < 3) return [];
     try {
-        const prompt = `Provide up to 5 autocomplete suggestions for places, landmarks, or areas in Lagos, Nigeria, that start with or are related to "${query}".`;
+        const prompt = `Provide up to 5 autocomplete suggestions for places, landmarks, or areas in Lagos, Nigeria, that start with or are related to "${query}". Respond in the ${language} language.`;
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
@@ -133,7 +151,9 @@ export const fetchSearchSuggestions = async (query: string): Promise<string[]> =
 
         const jsonText = response.text.trim();
         const result = JSON.parse(jsonText) as { suggestions: string[] };
-        return result.suggestions || [];
+        const suggestions = result.suggestions || [];
+        suggestionsCache.set(cacheKey, suggestions);
+        return suggestions;
     } catch (error) {
         console.error("Error fetching search suggestions:", error);
         return []; // Return empty array on error
@@ -199,7 +219,7 @@ const routeSchema = {
     }
 };
 
-export const fetchRoutes = async (start: { lat: number, lon: number }, end: { lat: number, lon: number }): Promise<Route[]> => {
+export const fetchRoutes = async (start: { lat: number, lon: number }, end: { lat: number, lon: number }, language: string): Promise<Route[]> => {
     if (!ai) {
         console.error(initializationError || "Routing service is unavailable.");
         // Return a mock route for development and in case of API key error
@@ -215,7 +235,7 @@ export const fetchRoutes = async (start: { lat: number, lon: number }, end: { la
         ];
     }
     try {
-        const prompt = `You are a route planning assistant for Lagos, Nigeria. Given a start latitude/longitude and an end latitude/longitude, provide up to 2 distinct route options (fastest and shortest). For each route, provide the following in a JSON array format:
+        const prompt = `You are a route planning assistant for Lagos, Nigeria. Given a start latitude/longitude and an end latitude/longitude, provide up to 2 distinct route options (fastest and shortest). Respond entirely in the ${language} language. For each route, provide the following in a JSON array format:
 1. name: A string (e.g., "Fastest Route").
 2. summary: A short string describing the main roads (e.g., "Via Lekki-Epe Expressway").
 3. distance: A string representing the total distance (e.g., "12.5 km").
@@ -272,13 +292,19 @@ const culturalLandmarksSchema = {
     }
 };
 
-export const fetchCulturalLandmarks = async (bounds: { _northEast: { lat: number, lng: number }, _southWest: { lat: number, lng: number } }): Promise<CulturalLandmark[]> => {
+export const fetchCulturalLandmarks = async (bounds: { _northEast: { lat: number, lng: number }, _southWest: { lat: number, lng: number } }, language: string): Promise<CulturalLandmark[]> => {
+    // Discretize bounds for effective caching. Rounding to 1 decimal place creates a grid of ~11km cells.
+    const cacheKey = `${language}:${bounds._northEast.lat.toFixed(1)}:${bounds._northEast.lng.toFixed(1)}:${bounds._southWest.lat.toFixed(1)}:${bounds._southWest.lng.toFixed(1)}`;
+    if (culturalLandmarksCache.has(cacheKey)) {
+        return culturalLandmarksCache.get(cacheKey)!;
+    }
+
     if (!ai) {
         console.error(initializationError || "Cultural landmark service is unavailable.");
         return [];
     }
     try {
-        const prompt = `List up to 10 significant cultural landmarks and historical sites in Lagos, Nigeria, that fall within this geographical bounding box:
+        const prompt = `List up to 10 significant cultural landmarks and historical sites in Lagos, Nigeria, that fall within this geographical bounding box. Respond in the ${language} language.
         North: ${bounds._northEast.lat}, South: ${bounds._southWest.lat}, East: ${bounds._northEast.lng}, West: ${bounds._southWest.lng}.
         For each, provide its name, a brief one-sentence description of its cultural or historical significance, and its precise latitude and longitude.`;
 
@@ -293,6 +319,7 @@ export const fetchCulturalLandmarks = async (bounds: { _northEast: { lat: number
 
         const jsonText = response.text.trim();
         const landmarks = JSON.parse(jsonText) as CulturalLandmark[];
+        culturalLandmarksCache.set(cacheKey, landmarks);
         return landmarks;
     } catch (error) {
         console.error("Error fetching cultural landmarks:", error);
@@ -300,19 +327,79 @@ export const fetchCulturalLandmarks = async (bounds: { _northEast: { lat: number
     }
 };
 
-export const fetchLandmarkDetails = async (landmarkName: string): Promise<string> => {
+const landmarkDetailsSchema = {
+    type: Type.OBJECT,
+    properties: {
+        details: { 
+            type: Type.STRING, 
+            description: 'A detailed history and cultural significance of the landmark, formatted in well-structured paragraphs.' 
+        },
+        imageUrl: { 
+            type: Type.STRING,
+            description: 'A publicly accessible URL for a high-quality, relevant image of the landmark.'
+        }
+    },
+    required: ['details', 'imageUrl']
+};
+
+export const fetchLandmarkDetails = async (landmarkName: string, language: string): Promise<{ details: string; imageUrl: string; }> => {
+    const cacheKey = `${landmarkName}:${language}`;
+    if (landmarkDetailsCache.has(cacheKey)) {
+        return landmarkDetailsCache.get(cacheKey)!;
+    }
+
     if (!ai) {
-        return initializationError || "The AI service is currently unavailable.";
+        return {
+            details: initializationError || "The AI service is currently unavailable.",
+            imageUrl: ''
+        };
     }
     try {
-        const prompt = `Provide a detailed history and cultural significance of "${landmarkName}" in Lagos, Nigeria. Format the response in well-structured paragraphs.`;
+        const prompt = `Provide a detailed history and cultural significance of "${landmarkName}" in Lagos, Nigeria. Also provide a publicly accessible URL for a high-quality, relevant image of the landmark. Format the response as a JSON object with "details" and "imageUrl" keys. Respond in the ${language} language.`;
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: landmarkDetailsSchema,
+            },
         });
-        return response.text;
+        const jsonText = response.text.trim();
+        const data = JSON.parse(jsonText) as { details: string; imageUrl: string; };
+        landmarkDetailsCache.set(cacheKey, data);
+        return data;
     } catch (error) {
         console.error("Error fetching landmark details:", error);
-        return "Sorry, I couldn't find more details about this place right now.";
+        return {
+            details: "Sorry, I couldn't find more details about this place right now. Please try again later.",
+            imageUrl: ''
+        };
+    }
+};
+
+export const generateSpeech = async (text: string): Promise<string | null> => {
+    if (!ai) {
+        console.error(initializationError || "TTS service is unavailable.");
+        return null;
+    }
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash-preview-tts",
+            contents: [{ parts: [{ text: `Say clearly: ${text}` }] }],
+            config: {
+                responseModalities: [Modality.AUDIO],
+                speechConfig: {
+                    voiceConfig: {
+                        prebuiltVoiceConfig: { voiceName: 'Kore' },
+                    },
+                },
+            },
+        });
+        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        return base64Audio || null;
+
+    } catch (error) {
+        console.error("Error generating speech from Gemini API:", error);
+        return null;
     }
 };
