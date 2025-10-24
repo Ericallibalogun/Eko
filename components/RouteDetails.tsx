@@ -1,14 +1,17 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Route } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
-import { XIcon, ArrowUpIcon, ArrowLeftIcon, ArrowRightIcon, ChevronLeftIcon, ChevronRightIcon, ShareIcon } from './Icons';
+import { XIcon, ArrowUpIcon, ArrowLeftIcon, ArrowRightIcon, ChevronLeftIcon, ChevronRightIcon, ShareIcon, Volume2Icon, VolumeXIcon } from './Icons';
+import { generateSpeech } from '../services/geminiService';
+import { playAudio } from '../utils/audio';
 
 interface RouteDetailsProps {
   routes: Route[];
   selectedRoute: Route | null;
   onSelectRoute: (route: Route) => void;
   onClose: () => void;
+  isTtsEnabled: boolean;
+  onToggleTts: () => void;
 }
 
 // Helper function to calculate distance between two lat/lon points in meters
@@ -35,11 +38,11 @@ const getInstructionIcon = (instruction: string): React.ReactNode => {
     return <ArrowUpIcon className="w-16 h-16" />;
 };
 
-const RouteDetails: React.FC<RouteDetailsProps> = ({ routes, selectedRoute, onSelectRoute, onClose }) => {
+const RouteDetails: React.FC<RouteDetailsProps> = ({ routes, selectedRoute, onSelectRoute, onClose, isTtsEnabled, onToggleTts }) => {
   const { t } = useLanguage();
   const [isNavigating, setIsNavigating] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-
+  
   const handleStartNavigation = () => {
     if (selectedRoute) {
       setIsNavigating(true);
@@ -59,9 +62,24 @@ const RouteDetails: React.FC<RouteDetailsProps> = ({ routes, selectedRoute, onSe
 
   const handlePrevStep = () => {
     if (currentStepIndex > 0) {
-      setCurrentStepIndex(prev => prev - 1);
+      setCurrentStepIndex(prev => prev + 1);
     }
   };
+  
+  const speakInstruction = useCallback(async (instruction: string) => {
+    if (!isTtsEnabled) return;
+    const audioData = await generateSpeech(instruction);
+    if (audioData) {
+      await playAudio(audioData);
+    }
+  }, [isTtsEnabled]);
+
+  useEffect(() => {
+    if (isNavigating && selectedRoute) {
+      const instruction = selectedRoute.steps[currentStepIndex];
+      speakInstruction(instruction);
+    }
+  }, [isNavigating, currentStepIndex, selectedRoute, speakInstruction]);
 
   useEffect(() => {
     if (!isNavigating || !selectedRoute) return;
@@ -115,11 +133,15 @@ const RouteDetails: React.FC<RouteDetailsProps> = ({ routes, selectedRoute, onSe
     const isFinalStep = currentStepIndex === selectedRoute.steps.length - 1;
     const currentStep = selectedRoute.steps[currentStepIndex];
     const nextStep = isFinalStep ? t('navigation_you_have_arrived') : selectedRoute.steps[currentStepIndex + 1];
+    const isMuted = !isTtsEnabled;
 
     return (
         <div className="flex flex-col h-full">
             <div className="p-4 border-b border-gray-700 flex items-center justify-between">
-                <h3 className="text-xl font-bold font-poppins">{selectedRoute.name}</h3>
+                <button onClick={onToggleTts} className="p-2 rounded-full hover:bg-gray-700/50" aria-label={isMuted ? "Unmute audio" : "Mute audio"}>
+                    {isMuted ? <VolumeXIcon className="w-6 h-6" /> : <Volume2Icon className="w-6 h-6" />}
+                </button>
+                <h3 className="text-xl font-bold font-poppins text-center flex-grow">{selectedRoute.name}</h3>
                 <button onClick={handleEndNavigation} className="bg-red-600/80 text-white font-bold py-2 px-4 rounded-lg transition hover:bg-red-700">
                     {t('navigation_end_route')}
                 </button>
@@ -140,7 +162,7 @@ const RouteDetails: React.FC<RouteDetailsProps> = ({ routes, selectedRoute, onSe
                     <span>{t('navigation_back')}</span>
                 </button>
                  <span className="font-semibold">{currentStepIndex + 1} / {selectedRoute.steps.length}</span>
-                <button onClick={handleNextStep} className="flex items-center space-x-2 text-white font-bold py-3 px-6 rounded-lg bg-gray-700 hover:bg-gray-600">
+                <button onClick={isFinalStep ? handleEndNavigation : handleNextStep} className="flex items-center space-x-2 text-white font-bold py-3 px-6 rounded-lg bg-gray-700 hover:bg-gray-600">
                     <span>{isFinalStep ? t('navigation_finish') : t('navigation_next')}</span>
                     <ChevronRightIcon className="w-5 h-5" />
                 </button>

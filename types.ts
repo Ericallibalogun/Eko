@@ -40,6 +40,7 @@ export interface Settings {
     theme: 'Dark' | 'Light' | 'Auto';
     language: 'English' | 'Yoruba' | 'Hausa' | 'Igbo';
     mapSource: 'OpenStreetMap' | 'Google Maps';
+    ttsEnabled: boolean;
 }
 
 export interface SettingsSection {

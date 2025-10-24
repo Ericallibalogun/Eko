@@ -28,6 +28,11 @@ export const SETTINGS_CONFIG: SettingsSection[] = [
         options: ['OpenStreetMap', 'Google Maps'],
         key: 'mapSource',
       },
+      {
+        label: 'Text-to-Speech',
+        type: 'toggle',
+        key: 'ttsEnabled',
+      },
     ],
   },
 ];
@@ -61,4 +66,4 @@ export const RECENT_PLACES: SavedPlace[] = [
       category: 'Nature',
       imageUrl: 'https://images.unsplash.com/photo-1588195538326-c5b1e9f80a1b?q=80&w=774&auto=format&fit=crop',
     },
-]
+];

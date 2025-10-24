@@ -8,6 +8,7 @@ interface RoutePlannerProps {
   onClose: () => void;
   onRoutesFound: (routes: Route[]) => void;
   userLocation: [number, number] | null;
+  initialDestination?: { name: string; coords: { lat: number; lon: number; }; } | null;
 }
 
 type LocationPoint = {
@@ -42,6 +43,7 @@ const SuggestionInput: React.FC<{
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { language } = useLanguage();
 
   useEffect(() => {
     if (value.length < 3) {
@@ -53,13 +55,13 @@ const SuggestionInput: React.FC<{
     const handler = setTimeout(async () => {
       setShowSuggestions(true);
       setIsLoading(true);
-      const fetchedSuggestions = await fetchSearchSuggestions(value);
+      const fetchedSuggestions = await fetchSearchSuggestions(value, language);
       setSuggestions(fetchedSuggestions);
       setIsLoading(false);
     }, 500);
 
     return () => clearTimeout(handler);
-  }, [value]);
+  }, [value, language]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -106,12 +108,21 @@ const SuggestionInput: React.FC<{
   );
 }
 
-const RoutePlanner: React.FC<RoutePlannerProps> = ({ onClose, onRoutesFound, userLocation }) => {
-  const { t } = useLanguage();
+const RoutePlanner: React.FC<RoutePlannerProps> = ({ onClose, onRoutesFound, userLocation, initialDestination }) => {
+  const { t, language } = useLanguage();
   const [startPoint, setStartPoint] = useState<LocationPoint>({ name: t('your_location'), coords: userLocation ? { lat: userLocation[0], lon: userLocation[1] } : null });
   const [destinationPoint, setDestinationPoint] = useState<LocationPoint>({ name: '', coords: null });
   const [isLoading, setIsLoading] = useState(false);
   const locationWatchId = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (initialDestination) {
+        setDestinationPoint({
+            name: initialDestination.name,
+            coords: initialDestination.coords,
+        });
+    }
+  }, [initialDestination]);
 
   useEffect(() => {
     if (startPoint.name === t('your_location')) {
@@ -178,7 +189,7 @@ const RoutePlanner: React.FC<RoutePlannerProps> = ({ onClose, onRoutesFound, use
           return;
       }
       setIsLoading(true);
-      const routes = await fetchRoutes(startPoint.coords, destinationPoint.coords);
+      const routes = await fetchRoutes(startPoint.coords, destinationPoint.coords, language);
       onRoutesFound(routes);
       setIsLoading(false);
       onClose(); // Close planner to show map results
