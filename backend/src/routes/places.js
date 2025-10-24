@@ -3,6 +3,13 @@ import Place from '../models/Place.js';
 
 const router = express.Router();
 
+// Add CORS headers to all responses from this router
+router.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  next();
+});
+
 // Get places by category
 router.get('/category/:category', async (req, res) => {
   try {

@@ -4,6 +4,13 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
+// Add CORS headers to all responses from this router
+router.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  next();
+});
+
 // Generate JWT token
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET || 'eko_navigation_secret', {

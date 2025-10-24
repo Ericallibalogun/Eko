@@ -58,7 +58,7 @@ if (process.env.CORS_ALLOW_ALL === 'true') {
   }
 }
 
-// Middleware
+// Apply CORS middleware before other middleware
 app.use(cors(corsOptions));
 app.use(express.json());
 

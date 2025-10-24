@@ -4,6 +4,13 @@ import auth from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Add CORS headers to all responses from this router
+router.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  next();
+});
+
 // Get chat history
 router.get('/history', auth, async (req, res) => {
   try {
