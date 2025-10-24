@@ -52,6 +52,15 @@ const App: React.FC = () => {
         if (![Screen.Splash, Screen.Onboarding, Screen.Login, Screen.Signup].includes(currentScreen)) {
           const profile = await userAPI.getProfile();
           setUserProfile(profile);
+          
+          // Update local settings with user's saved settings
+          if (profile.settings) {
+            setSettings({
+              theme: profile.settings.theme || 'Dark',
+              language: profile.settings.language || 'English',
+              mapSource: profile.settings.mapSource || 'OpenStreetMap'
+            });
+          }
         }
       } catch (error) {
         console.error('Failed to fetch user profile:', error);

@@ -3,7 +3,7 @@ import type { UserProfile, SettingsSection, SavedPlace } from './types';
 export const USER_PROFILE: UserProfile = {
   name: 'Ayomide Lagos',
   email: 'ayo.lagos@example.com',
-  avatarUrl: `https://api.pravatar.cc/150?u=${encodeURIComponent('ayo.lagos@example.com')}`,
+  avatarUrl: `https://ui-avatars.com/api/?name=Ayomide+Lagos&background=random`,
 };
 
 export const SETTINGS_CONFIG: SettingsSection[] = [
