@@ -90,7 +90,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onMenuClick, onNavigate, settin
   const [culturalLandmarks, setCulturalLandmarks] = useState<CulturalLandmark[]>([]);
   const [selectedLandmark, setSelectedLandmark] = useState<CulturalLandmark | null>(null);
 
-  const layers: Record<Settings['mapSource'], string> = {
+  const layers: Record<string, string> = {
     OpenStreetMap: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     'Google Maps': "https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
   };

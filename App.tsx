@@ -20,7 +20,8 @@ const App: React.FC = () => {
   const [settings, setSettings] = useState<Settings>({
     theme: 'Dark',
     language: 'English',
-    mapSource: 'OpenStreetMap'
+    mapSource: 'OpenStreetMap',
+    ttsEnabled: false
   });
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
@@ -58,7 +59,8 @@ const App: React.FC = () => {
             setSettings({
               theme: profile.settings.theme || 'Dark',
               language: profile.settings.language || 'English',
-              mapSource: profile.settings.mapSource || 'OpenStreetMap'
+              mapSource: profile.settings.mapSource || 'OpenStreetMap',
+              ttsEnabled: profile.settings.ttsEnabled || false
             });
           }
         }
@@ -85,7 +87,7 @@ const App: React.FC = () => {
       case Screen.Permissions:
         return <PermissionsScreen onComplete={() => setCurrentScreen(Screen.Home)} />;
       case Screen.Home:
-        return <HomeScreen onMenuClick={() => setIsSidebarOpen(true)} onNavigate={setCurrentScreen} mapSource={settings.mapSource} />;
+        return <HomeScreen onMenuClick={() => setIsSidebarOpen(true)} onNavigate={setCurrentScreen} settings={settings} setSettings={setSettings} />;
        case Screen.Explore:
         return <ExploreScreen onMenuClick={() => setIsSidebarOpen(true)} />;
        case Screen.Favorites:
@@ -95,7 +97,7 @@ const App: React.FC = () => {
        case Screen.AR:
         return <ARScreen onExit={() => setCurrentScreen(Screen.Home)} />;
       default:
-        return <HomeScreen onMenuClick={() => setIsSidebarOpen(true)} onNavigate={setCurrentScreen} mapSource={settings.mapSource} />;
+        return <HomeScreen onMenuClick={() => setIsSidebarOpen(true)} onNavigate={setCurrentScreen} settings={settings} setSettings={setSettings} />;
     }
   };
   
