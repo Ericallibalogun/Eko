@@ -105,8 +105,11 @@ router.delete('/saved-places/:placeId', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     
-    // Remove saved place
-    user.savedPlaces = user.savedPlaces.filter(place => place._id.toString() !== placeId);
+    // Remove saved place by filtering out the place with the matching ID
+    // We need to convert the ObjectId to string for comparison
+    user.savedPlaces = user.savedPlaces.filter(place => 
+      place._id ? place._id.toString() !== placeId : true
+    );
     
     await user.save();
     
