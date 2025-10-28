@@ -155,18 +155,62 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose, isTtsEnabled, onToggle
         }
     }, [language, t]);
 
-
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Helper function to check if a message is navigation-related
+    const isNavigationRelated = (message: string): boolean => {
+        const lowerMessage = message.toLowerCase();
+        
+        // Keywords that indicate navigation-related questions
+        const navigationKeywords = [
+            'direction', 'route', 'way to', 'how to get', 'navigate', 'map', 'location', 'place', 'landmark',
+            'transport', 'bus', 'train', 'ferry', 'taxi', 'uber', 'bolt', 'distance', 'near', 'closest',
+            'traffic', 'road', 'street', 'area', 'neighborhood', 'district', 'where is', 'find',
+            'itinajo', 'ọna', 'ibi', 'wurare', 'ajọ', 'aiki', 'nemanema', 'hanyoyi', 'gida',
+            'naviga', 'mapa', 'lọ', 'kwa', 'godi', 'sauƙi', 'ƙasa', 'waje', 'ƙarami',
+            'njikọ', 'njem', 'ebe', 'nke', 'udo', 'ala', 'nso', 'na', 'mfe', 'elu', 'nke'
+        ];
+        
+        // Keywords that indicate Lagos focus
+        const lagosKeywords = [
+            'lagos', 'eko', 'lekki', 'ikeja', 'surulere', 'yaba', 'apapa', 'ajah', 'ikoyi',
+            'victoria island', 'vi', 'mainland', 'mushin', 'ogba', 'ojuelegba', 'ikorodu',
+            'badagry', 'agege', 'alimosho', 'oshodi', 'ajegunle', 'bariga', 'ketu'
+        ];
+        
+        // Check if message contains navigation keywords
+        const hasNavigationKeyword = navigationKeywords.some(keyword => lowerMessage.includes(keyword));
+        
+        // Check if message contains Lagos keywords
+        const hasLagosKeyword = lagosKeywords.some(keyword => lowerMessage.includes(keyword));
+        
+        // Allow the message if it contains navigation keywords or Lagos keywords
+        return hasNavigationKeyword || hasLagosKeyword;
     };
-
-    useEffect(scrollToBottom, [messages]);
 
     const handleSend = async () => {
         const currentInput = input.trim();
         if (currentInput === '' || status !== 'idle') return;
         
         recognitionRef.current?.stop();
+        
+        // Check if the message is navigation-related before sending
+        if (!isNavigationRelated(currentInput)) {
+            const rejectionMessages: Record<string, string> = {
+                English: "I can only help with navigation in Lagos, Nigeria. Please ask me about places, directions, or transportation in Lagos.",
+                Yoruba: "Mo le ran o lowo ni itinajo nikan ni Lagos, Nigeria. Jọwọ beere fun mi nipa awọn ibi, itinajo, tabi ọna ọkọ in Lagos.",
+                Hausa: "Ina iya taimaka wa ne kawai a cikin nemanema a Lagos, Nigeria. Don Allah tambayi game da wurare, hanyoyi, ko ma aiki a cikin Lagos.",
+                Igbo: "Anaghị m enyere gị aka na ihe ọzọ karịa njikọ njem na Lagos, Nigeria. Biko jụọ m maka ebe, njikọ, ma ọ bụ njem na Lagos."
+            };
+            
+            const userMessage: Message = { role: 'user', text: currentInput };
+            const botMessage: Message = { 
+                role: 'model', 
+                text: rejectionMessages[language] || rejectionMessages.English 
+            };
+            
+            setMessages(prev => [...prev, userMessage, botMessage]);
+            setInput('');
+            return;
+        }
 
         const userMessage: Message = { role: 'user', text: currentInput };
         setMessages(prev => [...prev, userMessage]);
@@ -194,6 +238,12 @@ const EkoBot: React.FC<EkoBotProps> = ({ isOpen, onClose, isTtsEnabled, onToggle
             }
         }
     };
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(scrollToBottom, [messages]);
 
     const toggleListening = () => {
         if (status !== 'idle' || !recognitionRef.current) return;

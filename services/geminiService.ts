@@ -94,11 +94,33 @@ export const chatWithEkoBot = async (
     if (!ai) {
         return initializationError || "The AI service is currently unavailable.";
     }
+    
+    // Check if the message is related to navigation or Lagos
+    const isNavigationRelated = isQuestionNavigationRelated(message);
+    if (!isNavigationRelated) {
+        // Return a friendly message in the user's language
+        const rejectionMessages: Record<string, string> = {
+            English: "I'm here to help with navigation in Lagos, Nigeria. Please ask me about places, directions, or transportation in Lagos.",
+            Yoruba: "Mo wa nibi lati ran o lowo ni itinajo ni Lagos, Nigeria. Jọwọ beere fun mi nipa awọn ibi, itinajo, tabi ọna ọkọ in Lagos.",
+            Hausa: "Ina nan tana taimaka wa wajen nemanema a cikin Lagos, Nigeria. Don Allah tambayi ni game da wurare, hanyoyi, ko ma aiki a cikin Lagos.",
+            Igbo: "Ano m ebe a na-enyere gị aka na njikọ njem na Lagos, Nigeria. Biko jụọ m maka ebe, njikọ, ma ọ bụ njem na Lagos."
+        };
+        
+        return rejectionMessages[language] || rejectionMessages.English;
+    }
+    
     try {
         const chat = ai.chats.create({
             model: 'gemini-2.5-flash',
             config: {
-                systemInstruction: `You are EkoBot, a hyper-local and witty navigation assistant for Lagos, Nigeria. You are an expert in all things Lagos. You MUST respond fluently in the user's specified language, which is ${language}. You must also understand English, Yoruba, Hausa, and Igbo. Crucially, you will always be provided with the user's current GPS coordinates (latitude, longitude) when they are available. When a user asks for something 'nearby', 'around here', or 'close to me', you MUST use these coordinates to give specific, relevant, and actionable recommendations. If no location is provided, you should state that you need their location for a better recommendation, but still provide general suggestions for Lagos. Your tone should be friendly, helpful, and concise.`,
+                systemInstruction: `You are EkoBot, a hyper-local and witty navigation assistant for Lagos, Nigeria. You are an expert in all things Lagos. You MUST respond fluently in the user's specified language, which is ${language}. You must also understand English, Yoruba, Hausa, and Igbo. Crucially, you will always be provided with the user's current GPS coordinates (latitude, longitude) when they are available. When a user asks for something 'nearby', 'around here', or 'close to me', you MUST use these coordinates to give specific, relevant, and actionable recommendations. If no location is provided, you should state that you need their location for a better recommendation, but still provide general suggestions for Lagos. Your tone should be friendly, helpful, and concise.
+                
+IMPORTANT GUARDRAILS:
+1. ONLY answer questions related to navigation, places, directions, transportation, and landmarks in Lagos, Nigeria
+2. DO NOT answer questions about topics unrelated to Lagos navigation such as general knowledge, entertainment, politics, etc.
+3. If a question is not related to Lagos navigation, politely inform the user that you can only help with Lagos navigation
+4. ALWAYS focus your responses on Lagos state and its areas, neighborhoods, and transportation systems
+5. NEVER provide information about other cities, states, or countries unless it's directly related to navigation to Lagos`,
             },
             history,
         });
@@ -115,6 +137,39 @@ export const chatWithEkoBot = async (
         return "Sorry, I'm having trouble connecting right now. Please try again later.";
     }
 };
+
+// Helper function to check if a question is navigation-related and Lagos-focused
+function isQuestionNavigationRelated(message: string): boolean {
+    // Convert to lowercase for easier matching
+    const lowerMessage = message.toLowerCase();
+    
+    // Keywords that indicate navigation-related questions
+    const navigationKeywords = [
+        'direction', 'route', 'way to', 'how to get', 'navigate', 'map', 'location', 'place', 'landmark',
+        'transport', 'bus', 'train', 'ferry', 'taxi', 'uber', 'bolt', 'distance', 'near', 'closest',
+        'traffic', 'road', 'street', 'area', 'neighborhood', 'district', 'where is', 'find',
+        'itinajo', 'ọna', 'ibi', 'wurare', 'ajọ', 'aiki', 'nemanema', 'hanyoyi', 'gida',
+        'naviga', 'mapa', 'lọ', 'kwa', 'godi', 'sauƙi', 'ƙasa', 'waje', 'ƙarami',
+        'njikọ', 'njem', 'ebe', 'nke', 'udo', 'ala', 'nso', 'na', 'mfe', 'elu', 'nke'
+    ];
+    
+    // Keywords that indicate Lagos focus
+    const lagosKeywords = [
+        'lagos', 'eko', 'lekki', 'ikeja', 'surulere', 'yaba', 'apapa', 'ajah', 'ikoyi',
+        'victoria island', 'vi', 'mainland', 'mushin', 'ogba', 'ojuelegba', 'ikorodu',
+        'badagry', 'agege', 'alimosho', 'oshodi', 'ajegunle', 'bariga', 'ketu'
+    ];
+    
+    // Check if message contains navigation keywords
+    const hasNavigationKeyword = navigationKeywords.some(keyword => lowerMessage.includes(keyword));
+    
+    // Check if message contains Lagos keywords or is general (assume Lagos context)
+    const hasLagosKeyword = lagosKeywords.some(keyword => lowerMessage.includes(keyword));
+    
+    // If it has navigation keywords, it's likely related to navigation
+    // We'll be lenient and allow most questions through, but the AI will enforce stricter rules
+    return hasNavigationKeyword || hasLagosKeyword || lowerMessage.includes('?');
+}
 
 const searchSuggestionsSchema = {
     type: Type.OBJECT,
