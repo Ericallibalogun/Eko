@@ -5,13 +5,13 @@ let ai: GoogleGenAI | null = null;
 let initializationError: string | null = null;
 
 try {
-  // This will throw if process.env.API_KEY is missing.
-  // The user's build environment (e.g., on Vercel) must replace process.env.API_KEY with the actual key.
-  // If it doesn't, this will fail gracefully instead of crashing the app.
-  ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // This will throw if process.env.API_KEY is missing.
+    // The user's build environment (e.g., on Vercel) must replace process.env.API_KEY with the actual key.
+    // If it doesn't, this will fail gracefully instead of crashing the app.
+    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 } catch (e: any) {
-  initializationError = "Failed to initialize AI service. Please ensure the API_KEY environment variable is correctly set for your deployment.";
-  console.error(initializationError, e);
+    initializationError = "Failed to initialize AI service. Please ensure the API_KEY environment variable is correctly set for your deployment.";
+    console.error(initializationError, e);
 }
 
 // --- Caching Implementation ---
@@ -22,71 +22,71 @@ const landmarkDetailsCache = new Map<string, { details: string; imageUrl: string
 
 
 const exploreResponseSchema = {
-  type: Type.ARRAY,
-  items: {
-    type: Type.OBJECT,
-    properties: {
-      name: {
-        type: Type.STRING,
-        description: 'The name of the place.',
-      },
-      category: {
-        type: Type.STRING,
-        description: 'A single category for the place (e.g., Food, Culture, Nature, Events, Landmark).',
-      },
-      description: {
-        type: Type.STRING,
-        description: 'A brief, one-sentence description of the place.',
-      },
+    type: Type.ARRAY,
+    items: {
+        type: Type.OBJECT,
+        properties: {
+            name: {
+                type: Type.STRING,
+                description: 'The name of the place.',
+            },
+            category: {
+                type: Type.STRING,
+                description: 'A single category for the place (e.g., Food, Culture, Nature, Events, Landmark).',
+            },
+            description: {
+                type: Type.STRING,
+                description: 'A brief, one-sentence description of the place.',
+            },
+        },
+        required: ['name', 'category', 'description'],
     },
-    required: ['name', 'category', 'description'],
-  },
 };
 
 export const fetchExplorePlaces = async (category: string, language: string): Promise<Place[]> => {
-  const cacheKey = `${category}:${language}`;
-  if (exploreCache.has(cacheKey)) {
-    return exploreCache.get(cacheKey)!;
-  }
-  
-  if (!ai) {
-    return [
-        { name: 'API Key Error', category: 'Error', description: initializationError! },
-        { name: 'Lekki Conservation Centre', category: 'Nature', description: 'A serene nature reserve known for its long canopy walkway and diverse wildlife.' },
-        { name: 'Nike Art Gallery', category: 'Culture', description: 'A stunning art gallery showcasing contemporary and traditional Nigerian art.' },
-    ];
-  }
+    const cacheKey = `${category}:${language}`;
+    if (exploreCache.has(cacheKey)) {
+        return exploreCache.get(cacheKey)!;
+    }
 
-  try {
-    const prompt = `List 5 popular places in Lagos, Nigeria under the category "${category}". For each place, provide its name, a single category, and a brief one-sentence description. Respond in the ${language} language.`;
-    
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: exploreResponseSchema,
-      },
-    });
+    if (!ai) {
+        return [
+            { name: 'API Key Error', category: 'Error', description: initializationError! },
+            { name: 'Lekki Conservation Centre', category: 'Nature', description: 'A serene nature reserve known for its long canopy walkway and diverse wildlife.' },
+            { name: 'Nike Art Gallery', category: 'Culture', description: 'A stunning art gallery showcasing contemporary and traditional Nigerian art.' },
+        ];
+    }
 
-    const jsonText = response.text.trim();
-    const places = JSON.parse(jsonText) as Place[];
-    exploreCache.set(cacheKey, places);
-    return places;
+    try {
+        const prompt = `List 5 popular places in Lagos, Nigeria under the category "${category}". For each place, provide its name, a single category, and a brief one-sentence description. Respond in the ${language} language.`;
 
-  } catch (error) {
-    console.error("Error fetching explore places from Gemini API:", error);
-    // Return mock data on error to ensure the app is still functional
-    return [
-        { name: 'Error fetching data', category: 'Error', description: 'Could not connect to the discovery service. Please check your network connection.' },
-        { name: 'Lekki Conservation Centre', category: 'Nature', description: 'A serene nature reserve known for its long canopy walkway and diverse wildlife.' },
-        { name: 'Nike Art Gallery', category: 'Culture', description: 'A stunning art gallery showcasing contemporary and traditional Nigerian art.' },
-    ];
-  }
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: exploreResponseSchema,
+            },
+        });
+
+        const jsonText = response.text.trim();
+        const places = JSON.parse(jsonText) as Place[];
+        exploreCache.set(cacheKey, places);
+        return places;
+
+    } catch (error) {
+        console.error("Error fetching explore places from Gemini API:", error);
+        // Return mock data on error to ensure the app is still functional
+        return [
+            { name: 'Error fetching data', category: 'Error', description: 'Could not connect to the discovery service. Please check your network connection.' },
+            { name: 'Lekki Conservation Centre', category: 'Nature', description: 'A serene nature reserve known for its long canopy walkway and diverse wildlife.' },
+            { name: 'Nike Art Gallery', category: 'Culture', description: 'A stunning art gallery showcasing contemporary and traditional Nigerian art.' },
+        ];
+    }
 };
 
 export const chatWithEkoBot = async (
-    message: string, 
+    message: string,
     history: { role: 'user' | 'model', parts: { text: string }[] }[],
     language: string,
     location?: { lat: number, lon: number }
@@ -94,7 +94,7 @@ export const chatWithEkoBot = async (
     if (!ai) {
         return initializationError || "The AI service is currently unavailable.";
     }
-    
+
     // Check if the message is related to navigation or Lagos
     const isNavigationRelated = isQuestionNavigationRelated(message);
     if (!isNavigationRelated) {
@@ -105,26 +105,29 @@ export const chatWithEkoBot = async (
             Hausa: "Ina nan tana taimaka wa wajen nemanema a cikin Lagos, Nigeria. Don Allah tambayi ni game da wurare, hanyoyi, ko ma aiki a cikin Lagos.",
             Igbo: "Ano m ebe a na-enyere gị aka na njikọ njem na Lagos, Nigeria. Biko jụọ m maka ebe, njikọ, ma ọ bụ njem na Lagos."
         };
-        
+
         return rejectionMessages[language] || rejectionMessages.English;
     }
-    
+
     try {
         const chat = ai.chats.create({
             model: 'gemini-2.5-flash',
             config: {
-                systemInstruction: `You are EkoBot, a hyper-local and witty navigation assistant for Lagos, Nigeria. You are an expert in all things Lagos. You MUST respond fluently in the user's specified language, which is ${language}. You must also understand English, Yoruba, Hausa, and Igbo. Crucially, you will always be provided with the user's current GPS coordinates (latitude, longitude) when they are available. When a user asks for something 'nearby', 'around here', or 'close to me', you MUST use these coordinates to give specific, relevant, and actionable recommendations. If no location is provided, you should state that you need their location for a better recommendation, but still provide general suggestions for Lagos. Your tone should be friendly, helpful, and concise.
-                
-IMPORTANT GUARDRAILS:
-1. ONLY answer questions related to navigation, places, directions, transportation, and landmarks in Lagos, Nigeria
-2. DO NOT answer questions about topics unrelated to Lagos navigation such as general knowledge, entertainment, politics, etc.
-3. If a question is not related to Lagos navigation, politely inform the user that you can only help with Lagos navigation
-4. ALWAYS focus your responses on Lagos state and its areas, neighborhoods, and transportation systems
-5. NEVER provide information about other cities, states, or countries unless it's directly related to navigation to Lagos`,
+                systemInstruction: `You are EkoBot, a navigation assistant exclusively for Lagos, Nigeria. You MUST respond fluently in ${language}.
+
+YOUR ONLY PURPOSE is to help users with navigation, directions, places, landmarks, and transportation within Lagos, Nigeria.
+
+STRICT RULES — follow these without exception:
+1. If a question is NOT about navigation, directions, places, transport, or landmarks in Lagos, you MUST refuse. Say: "I can only help with navigation and places in Lagos, Nigeria. Please ask me about directions, routes, or locations in Lagos."
+2. NEVER answer general knowledge questions, math, science, entertainment, politics, history, coding, or any topic unrelated to Lagos navigation — even if the user insists.
+3. NEVER answer questions about other cities or countries unless the user is asking how to travel TO Lagos from there.
+4. When the user's GPS coordinates are provided, use them to give specific nearby recommendations.
+5. If no location is provided and the user asks for nearby places, ask for their location first.
+6. Keep responses concise and actionable.`,
             },
             history,
         });
-        
+
         let finalMessage = message;
         if (location) {
             finalMessage = `My current location is latitude ${location.lat}, longitude ${location.lon}. My question is: ${message}`;
@@ -142,7 +145,7 @@ IMPORTANT GUARDRAILS:
 function isQuestionNavigationRelated(message: string): boolean {
     // Convert to lowercase for easier matching
     const lowerMessage = message.toLowerCase();
-    
+
     // Keywords that indicate navigation-related questions
     const navigationKeywords = [
         'direction', 'route', 'way to', 'how to get', 'navigate', 'map', 'location', 'place', 'landmark',
@@ -152,23 +155,22 @@ function isQuestionNavigationRelated(message: string): boolean {
         'naviga', 'mapa', 'lọ', 'kwa', 'godi', 'sauƙi', 'ƙasa', 'waje', 'ƙarami',
         'njikọ', 'njem', 'ebe', 'nke', 'udo', 'ala', 'nso', 'na', 'mfe', 'elu', 'nke'
     ];
-    
+
     // Keywords that indicate Lagos focus
     const lagosKeywords = [
         'lagos', 'eko', 'lekki', 'ikeja', 'surulere', 'yaba', 'apapa', 'ajah', 'ikoyi',
         'victoria island', 'vi', 'mainland', 'mushin', 'ogba', 'ojuelegba', 'ikorodu',
         'badagry', 'agege', 'alimosho', 'oshodi', 'ajegunle', 'bariga', 'ketu'
     ];
-    
+
     // Check if message contains navigation keywords
     const hasNavigationKeyword = navigationKeywords.some(keyword => lowerMessage.includes(keyword));
-    
+
     // Check if message contains Lagos keywords or is general (assume Lagos context)
     const hasLagosKeyword = lagosKeywords.some(keyword => lowerMessage.includes(keyword));
-    
-    // If it has navigation keywords, it's likely related to navigation
-    // We'll be lenient and allow most questions through, but the AI will enforce stricter rules
-    return hasNavigationKeyword || hasLagosKeyword || lowerMessage.includes('?');
+
+    // Only allow through if it has navigation or Lagos keywords
+    return hasNavigationKeyword || hasLagosKeyword;
 }
 
 const searchSuggestionsSchema = {
@@ -321,7 +323,7 @@ End: { lat: ${end.lat}, lon: ${end.lon} }`;
         console.error("Error fetching routes from Gemini API:", error);
         // Fallback to a simple straight-line route on error
         return [
-             {
+            {
                 name: "Direct Route (Fallback)",
                 summary: "A straight line to your destination.",
                 distance: "N/A",
@@ -385,11 +387,11 @@ export const fetchCulturalLandmarks = async (bounds: { _northEast: { lat: number
 const landmarkDetailsSchema = {
     type: Type.OBJECT,
     properties: {
-        details: { 
-            type: Type.STRING, 
-            description: 'A detailed history and cultural significance of the landmark, formatted in well-structured paragraphs.' 
+        details: {
+            type: Type.STRING,
+            description: 'A detailed history and cultural significance of the landmark, formatted in well-structured paragraphs.'
         },
-        imageUrl: { 
+        imageUrl: {
             type: Type.STRING,
             description: 'A publicly accessible URL for a high-quality, relevant image of the landmark.'
         }

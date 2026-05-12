@@ -5,6 +5,7 @@ import type { SettingsSection, Settings, UserProfile } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
 import { translations } from '../i18n/translations';
 import Avatar from './Avatar';
+import { userAPI } from '../services/apiService';
 
 interface SettingsScreenProps {
     onMenuClick: () => void;
@@ -13,7 +14,7 @@ interface SettingsScreenProps {
     userProfile: UserProfile | null;
 }
 
-const SelectInput: React.FC<{ 
+const SelectInput: React.FC<{
     options: string[],
     value: string;
     onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
@@ -27,13 +28,13 @@ const SelectInput: React.FC<{
 );
 
 
-const SettingsSectionComponent: React.FC<{ 
+const SettingsSectionComponent: React.FC<{
     section: SettingsSection,
     settings: Settings,
     setSettings: React.Dispatch<React.SetStateAction<Settings>>;
 }> = ({ section, settings, setSettings }) => {
     const { t } = useLanguage();
-    
+
     const getLabel = (key: keyof Settings) => {
         const keyMap: Partial<Record<keyof Settings, keyof typeof translations.English>> = {
             theme: 'settings_theme',
@@ -52,10 +53,14 @@ const SettingsSectionComponent: React.FC<{
                         <label className="text-white">{getLabel(item.key)}</label>
                         {item.type === 'select' && item.options && (
                             <div className="w-40">
-                                <SelectInput 
-                                    options={item.options} 
+                                <SelectInput
+                                    options={item.options}
                                     value={settings[item.key]}
-                                    onChange={(e) => setSettings(s => ({...s, [item.key]: e.target.value as any}))}
+                                    onChange={(e) => {
+                                        const newValue = e.target.value as any;
+                                        setSettings(s => ({ ...s, [item.key]: newValue }));
+                                        userAPI.updateSettings({ [item.key]: newValue }).catch(() => { });
+                                    }}
                                 />
                             </div>
                         )}
@@ -68,10 +73,10 @@ const SettingsSectionComponent: React.FC<{
 
 const SettingsScreen: React.FC<SettingsScreenProps> = ({ onMenuClick, settings, setSettings, userProfile }) => {
     const { t } = useLanguage();
-    
+
     // Use the fetched user profile or fallback to the default one
     const displayUserProfile = userProfile || USER_PROFILE;
-    
+
     return (
         <div className="bg-[#121212] min-h-screen text-white">
             <header className="sticky top-0 bg-[#121212]/80 backdrop-blur-md p-4 z-10 flex items-center justify-between text-white">
@@ -79,8 +84,8 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onMenuClick, settings, 
                     <MenuIcon className="w-6 h-6" />
                 </button>
                 <h1 className="text-2xl font-bold font-poppins">{t('settings_header')}</h1>
-                 <button className="p-2 rounded-full hover:bg-gray-700/50">
-                   <Avatar src={displayUserProfile.avatarUrl} alt="user" className="w-8 h-8 rounded-full" />
+                <button className="p-2 rounded-full hover:bg-gray-700/50">
+                    <Avatar src={displayUserProfile.avatarUrl} alt="user" className="w-8 h-8 rounded-full" />
                 </button>
             </header>
 
@@ -102,10 +107,10 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onMenuClick, settings, 
 
                 {/* Settings */}
                 {SETTINGS_CONFIG.map(section => (
-                    <SettingsSectionComponent key={section.title} section={section} settings={settings} setSettings={setSettings}/>
+                    <SettingsSectionComponent key={section.title} section={section} settings={settings} setSettings={setSettings} />
                 ))}
 
-                 {/* About Section */}
+                {/* About Section */}
                 <div className="text-center text-slate-500 text-sm mt-12">
                     <p>EKO Navigation v1.0</p>
                     <p>Made with ❤️ in Nigeria.</p>
